@@ -1,3 +1,4 @@
+from django.core.paginator import Paginator
 from django.http import JsonResponse
 from django.views import View
 from rest_framework import status
@@ -7,10 +8,13 @@ from rest_framework.response import Response
 from .models import Pharmacy
 from .serializers import PharmacySerializer
 
-
 @api_view(['GET'])
 def pharmacyList(request) -> Response:
-    pharmacies = Pharmacy.objects.all()
+    page = request.GET.get("page")
+
+    paginator = Paginator(Pharmacy.objects.all(), 10)
+    pharmacies = paginator.page(page)
+
     serializer = PharmacySerializer(pharmacies, many=True)
     return Response(serializer.data)
 
