@@ -5,5 +5,5 @@ from pharmacy import views
 urlpatterns = [
     path('pharmacies', views.pharmacyList),
     path('pharmacy', views.pharmacySave),
-    path('pharmacies/<int:id>', views.pharmacyDetails),
+    path('pharmacies/<int:id>', views.PharmacyDetails.as_view()),
 ]

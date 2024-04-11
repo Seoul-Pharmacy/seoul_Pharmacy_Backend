@@ -1,3 +1,5 @@
+from django.http import JsonResponse
+from django.views import View
 from rest_framework import status
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
@@ -22,18 +24,17 @@ def pharmacySave(request) -> Response:
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-@api_view(['GET', 'PUT', 'DELETE'])
-def pharmacyDetails(request, id) -> Response:
-    if request.method == 'GET':
+class PharmacyDetails(View):
+    def get(self, request, id) -> JsonResponse:
         pharmacy = Pharmacy.objects.get(id=id)
         serializer = PharmacySerializer(pharmacy)
-        return Response(serializer.data)
+        return JsonResponse(serializer.data)
 
-    if request.method == 'PUT':
+    def post(self, request, id) -> JsonResponse:
         try:
             query = Pharmacy.objects.get(id=id)
         except Pharmacy.DoesNotExist as e:
-            return Response({'error': {
+            return JsonResponse({'error': {
                 'code': 404,
                 'message': "Pharmacy not found!"
             }}, status=status.HTTP_404_NOT_FOUND)
@@ -41,18 +42,17 @@ def pharmacyDetails(request, id) -> Response:
         pharmacy = PharmacySerializer(query, data=request.data)
         if pharmacy.is_valid():
             pharmacy.save()
-            return Response(pharmacy.data)
-        return Response(pharmacy.errors, status=status.HTTP_400_BAD_REQUEST)
+            return JsonResponse(pharmacy.data)
+        return JsonResponse(pharmacy.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    if request.method == 'DELETE':
+    def delete(self, request, id) -> JsonResponse:
         try:
             query = Pharmacy.objects.get(id=id)
         except Pharmacy.DoesNotExist:
-            return Response({'error': {
+            return JsonResponse({'error': {
                 'code': 404,
                 'message': "User not found!"
             }}, status=status.HTTP_404_NOT_FOUND)
 
         query.delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
-
+        return JsonResponse(status=status.HTTP_204_NO_CONTENT)
