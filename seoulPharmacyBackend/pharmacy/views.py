@@ -9,18 +9,21 @@ from .models import Pharmacy
 from .serializers import PharmacySerializer
 
 @api_view(['GET'])
-def pharmacyList(request) -> Response:
-    page = request.GET.get("page")
+def pharmacy_list(request) -> Response:
 
-    paginator = Paginator(Pharmacy.objects.all(), 10)
-    pharmacies = paginator.page(page)
+
+    pharmacies = Pharmacy.objects.filter()
+
+    page = request.GET.get("page")
+    paginator = Paginator(pharmacies, 10)
+    pages = paginator.page(page)
 
     serializer = PharmacySerializer(pharmacies, many=True)
     return Response(serializer.data)
 
 
 @api_view(['POST'])
-def pharmacySave(request) -> Response:
+def pharmacy_save(request) -> Response:
     serializer = PharmacySerializer(data=request.data)
     if serializer.is_valid():
         serializer.save()
