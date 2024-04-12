@@ -3,10 +3,10 @@ from datetime import datetime
 from django.core.paginator import Paginator
 from django.db.models import QuerySet
 from django.http import JsonResponse
-from django.views import View
 from rest_framework import status
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
+from rest_framework.views import APIView
 
 from .models import Pharmacy
 from .serializers import PharmacySerializer
@@ -91,35 +91,36 @@ def pharmacy_save(request) -> Response:
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-class PharmacyDetails(View):
+class PharmacyDetails(APIView):
     def get(self, request, id) -> JsonResponse:
         pharmacy = Pharmacy.objects.get(id=id)
         serializer = PharmacySerializer(pharmacy)
         return JsonResponse(serializer.data)
 
-    def post(self, request, id) -> JsonResponse:
+    def put(self, request, id) -> JsonResponse:
         try:
             query = Pharmacy.objects.get(id=id)
+
+            pharmacy = PharmacySerializer(query, data=request.data)
+            if pharmacy.is_valid():
+                pharmacy.save()
+                return JsonResponse(pharmacy.data)
         except Pharmacy.DoesNotExist as e:
             return JsonResponse({'error': {
                 'code': 404,
                 'message': "Pharmacy not found!"
             }}, status=status.HTTP_404_NOT_FOUND)
 
-        pharmacy = PharmacySerializer(query, data=request.data)
-        if pharmacy.is_valid():
-            pharmacy.save()
-            return JsonResponse(pharmacy.data)
         return JsonResponse(pharmacy.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    def delete(self, request, id) -> JsonResponse:
+    def delete(self, request, id) -> Response:
         try:
             query = Pharmacy.objects.get(id=id)
         except Pharmacy.DoesNotExist:
-            return JsonResponse({'error': {
+            return Response({'error': {
                 'code': 404,
                 'message': "User not found!"
             }}, status=status.HTTP_404_NOT_FOUND)
 
         query.delete()
-        return JsonResponse(status=status.HTTP_204_NO_CONTENT)
+        return Response(status=status.HTTP_204_NO_CONTENT)
