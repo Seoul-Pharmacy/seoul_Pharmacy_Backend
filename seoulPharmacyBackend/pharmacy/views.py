@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from django.core.paginator import Paginator
 from django.db.models import QuerySet
 from django.http import JsonResponse
@@ -10,24 +12,30 @@ from .models import Pharmacy
 from .serializers import PharmacySerializer
 
 
+# 구, 시간, 외국어로 검색하기
 @api_view(['GET'])
 def pharmacy_list(request) -> Response:
+    page = request.GET.get("page")
     gu = request.GET.get("gu")
     language = request.GET.get("language", default=None)
-    day_of_week = request.GET.get("dayOfWeek")
     open_time = request.GET.get("openTime")
     close_time = request.GET.get("closeTime")
+    year = request.GET.get("year")
+    month = request.GET.get("month")
+    day = request.GET.get("day")
+
+    day_of_week = get_day_of_week(year, month, day)
 
     pharmacies = Pharmacy.objects.filter(gu=gu)
     pharmacies = filter_by_language(pharmacies, language)
     pharmacies = filter_by_dayofweek_and_time(pharmacies, day_of_week, open_time, close_time)
 
-    page = request.GET.get("page")
     paginator = Paginator(pharmacies, 10)
     pages = paginator.page(page)
 
-    serializer = PharmacySerializer(pages, many=True)
-    return Response(serializer.data)
+    datas = PharmacySerializer(pages, many=True).data
+
+    return Response(datas)
 
 
 # 언어에 맞는 약국만 필터링
@@ -39,6 +47,14 @@ def filter_by_language(queryset, language) -> QuerySet:
     if language == "jp":
         return queryset.filter(speaking_japanese=True)
     return queryset
+
+
+# 날자에 해당하는 요일 가져오기
+def get_day_of_week(year, month, day) -> str:
+    days = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun']
+    day_of_week = datetime(year, month, day).weekday()
+
+    return days[day_of_week]
 
 
 # 특정 요일 운영시간에 해당하는 약국만 필터링
@@ -58,6 +74,12 @@ def filter_by_dayofweek_and_time(queryset, day_of_week, open_time, close_time) -
     elif day_of_week == "sun":
         return queryset.filter(sun_open_time__lte=open_time, sun_close_timev=close_time)
     return queryset
+
+
+# 현재 영업중인지 정보 추가하기
+def addOpenField(datas) -> list:
+    for data in datas:
+        data['open'] = True
 
 
 @api_view(['POST'])
