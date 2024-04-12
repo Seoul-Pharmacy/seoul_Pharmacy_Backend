@@ -113,6 +113,7 @@ def filter_by_location(pharmacies, latitude, longitude):
     return pharmacies
 
 
+# http로 약국 저장하기
 @api_view(['POST'])
 def pharmacy_save(request) -> Response:
     serializer = PharmacySerializer(data=request.data)
