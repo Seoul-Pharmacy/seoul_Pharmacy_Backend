@@ -26,10 +26,11 @@ def pharmacy_list(request) -> Response:
     paginator = Paginator(pharmacies, 10)
     pages = paginator.page(page)
 
-    serializer = PharmacySerializer(pharmacies, many=True)
+    serializer = PharmacySerializer(pages, many=True)
     return Response(serializer.data)
 
 
+# 언어에 맞는 약국만 필터링
 def filter_by_language(queryset, language) -> QuerySet:
     if language == "en":
         return queryset.filter(speaking_english=True)
@@ -40,21 +41,22 @@ def filter_by_language(queryset, language) -> QuerySet:
     return queryset
 
 
+# 특정 요일 운영시간에 해당하는 약국만 필터링
 def filter_by_dayofweek_and_time(queryset, day_of_week, open_time, close_time) -> QuerySet:
     if day_of_week == "mon":
-        queryset.filter(mon_open_time=open_time, mon_close_time=close_time)
+        return queryset.filter(mon_open_time__lte=open_time, mon_close_time__gte=close_time)
     elif day_of_week == "tue":
-        queryset.filter(tue_open_time=open_time, tue_close_time=close_time)
+        return queryset.filter(tue_open_time__lte=open_time, tue_close_time__gte=close_time)
     elif day_of_week == "wed":
-        queryset.filter(wed_open_time=open_time, wed_close_time=close_time)
+        return queryset.filter(wed_open_time__lte=open_time, wed_close_time__gte=close_time)
     elif day_of_week == "thu":
-        queryset.filter(thu_open_time=open_time, thu_close_time=close_time)
+        return queryset.filter(thu_open_time__lte=open_time, thu_close_time__gte=close_time)
     elif day_of_week == "fri":
-        queryset.filter(fri_open_time=open_time, fri_close_time=close_time)
+        return queryset.filter(fri_open_time__lte=open_time, fri_close_time__gte=close_time)
     elif day_of_week == "sat":
-        queryset.filter(sat_open_time=open_time, sat_close_time=close_time)
+        return queryset.filter(sat_open_time__lte=open_time, sat_close_time__gte=close_time)
     elif day_of_week == "sun":
-        queryset.filter(sun_open_time=open_time, sun_close_time=close_time)
+        return queryset.filter(sun_open_time__lte=open_time, sun_close_timev=close_time)
     return queryset
 
 
