@@ -12,5 +12,5 @@ class PharmacySerializer(serializers.ModelSerializer):
 class SimplePharmacySerializer(serializers.ModelSerializer):
     class Meta:
         model = Pharmacy
-        fields = ['id', 'name', 'si', 'gu', 'roadNameAddress', 'speaking_english', 'speaking_japanese',
+        fields = ['id', 'name', 'si', 'gu', 'road_name_address', 'main_number', 'speaking_english', 'speaking_japanese',
                   'speaking_chinese']

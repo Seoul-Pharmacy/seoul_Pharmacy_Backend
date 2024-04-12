@@ -7,7 +7,7 @@ class Pharmacy(models.Model):
 
     si = models.CharField(max_length=10, blank=False, null=False)
     gu = models.CharField(max_length=10, blank=False, null=False)
-    roadNameAddress = models.CharField(max_length=100, blank=False, null=False)
+    road_name_address = models.CharField(max_length=100, blank=False, null=False)
 
     main_number = models.CharField(max_length=13)
 
