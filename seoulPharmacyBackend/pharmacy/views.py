@@ -82,6 +82,37 @@ def addOpenField(datas) -> list:
         data['open'] = True
 
 
+# 근처 약국 찾기
+@api_view(['GET'])
+def nearby_pharmacy_list(request):
+    gu = request.GET.get("gu")
+    language = request.GET.get("language", default=None)
+    latitude = request.GET.get("latitude")
+    longitude = request.GET.get("longitude")
+    now = datetime.now()
+    now_time = now.time()
+    day_of_week = get_day_of_week(now.year, now.month, now.day)
+
+    pharmacies = Pharmacy.objects.filter(gu=gu)
+    pharmacies = filter_by_language(pharmacies, language)
+    print(pharmacies)
+
+    pharmacies = filter_by_dayofweek_and_time(pharmacies, day_of_week, now_time, now_time)
+    print(pharmacies)
+
+    pharmacies = filter_by_location(pharmacies, latitude, longitude)
+    print(pharmacies)
+
+    datas = PharmacySerializer(pharmacies, many=True).data
+
+    return Response(datas)
+
+
+# 현재 위도, 경도를 사용하여 가까운 5개 찾기
+def filter_by_location(pharmacies, latitude, longitude):
+    return pharmacies
+
+
 @api_view(['POST'])
 def pharmacy_save(request) -> Response:
     serializer = PharmacySerializer(data=request.data)
