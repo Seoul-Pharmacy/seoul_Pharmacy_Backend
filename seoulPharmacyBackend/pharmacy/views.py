@@ -9,7 +9,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from .models import Pharmacy
-from .serializers import PharmacySerializer
+from .serializers import PharmacySerializer, SimplePharmacySerializer
 
 
 # 구, 시간, 외국어로 검색하기
@@ -33,9 +33,9 @@ def pharmacy_list(request) -> Response:
     paginator = Paginator(pharmacies, 10)
     pages = paginator.page(page)
 
-    datas = PharmacySerializer(pages, many=True).data
+    datas = SimplePharmacySerializer(pages, many=True).data
 
-    return Response(datas)
+    return Response(datas, status=status.HTTP_200_OK)
 
 
 # 언어에 맞는 약국만 필터링
@@ -103,9 +103,9 @@ def nearby_pharmacy_list(request):
     pharmacies = filter_by_location(pharmacies, latitude, longitude)
     print(pharmacies)
 
-    datas = PharmacySerializer(pharmacies, many=True).data
+    datas = SimplePharmacySerializer(pharmacies, many=True).data
 
-    return Response(datas)
+    return Response(datas, status=status.HTTP_200_OK)
 
 
 # 현재 위도, 경도를 사용하여 가까운 5개 찾기
