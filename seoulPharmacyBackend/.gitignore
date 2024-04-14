@@ -175,4 +175,4 @@ cython_debug/
 
 
 # my_setting.py
-my_settings.py
+config/my_settings.py
