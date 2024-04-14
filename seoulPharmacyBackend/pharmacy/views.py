@@ -20,9 +20,9 @@ def pharmacy_list(request) -> Response:
     language = request.GET.get("language", default=None)
     open_time = request.GET.get("openTime")
     close_time = request.GET.get("closeTime")
-    year = request.GET.get("year")
-    month = request.GET.get("month")
-    day = request.GET.get("day")
+    year = int(request.GET.get("year"))
+    month = int(request.GET.get("month"))
+    day = int(request.GET.get("day"))
 
     day_of_week = get_day_of_week(year, month, day)
 
@@ -72,7 +72,7 @@ def filter_by_dayofweek_and_time(queryset, day_of_week, open_time, close_time) -
     elif day_of_week == "sat":
         return queryset.filter(sat_open_time__lte=open_time, sat_close_time__gte=close_time)
     elif day_of_week == "sun":
-        return queryset.filter(sun_open_time__lte=open_time, sun_close_timev=close_time)
+        return queryset.filter(sun_open_time__lte=open_time, sun_close_time__gte=close_time)
     return queryset
 
 
