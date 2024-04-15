@@ -37,7 +37,7 @@ class Pharmacy(models.Model):
     sun_close_time = models.TimeField(null=True)
     holiday_close_time = models.TimeField(null=True)
 
-    # last_modified = models.DateTimeField(auto_now=True)
+    last_modified = models.DateField(auto_now=True)
 
     def __str__(self):
         return self.name
