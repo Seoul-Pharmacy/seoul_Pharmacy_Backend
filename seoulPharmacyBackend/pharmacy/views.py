@@ -3,13 +3,15 @@ from datetime import datetime
 from django.core.paginator import Paginator
 from django.db.models import QuerySet
 from django.http import JsonResponse
+from django.shortcuts import get_object_or_404
 from rest_framework import status
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from common.exceptions import PharmacyNotFoundException
 from .models import Pharmacy
-from .pharmacy_hours_api import post_all_pharmacy_hours_list
+from .pharmacy_hours_api import post_pharmacy_hours_list
 from .serializers import PharmacySerializer, SimplePharmacySerializer
 
 
@@ -28,8 +30,11 @@ def pharmacy_list(request) -> Response:
     day_of_week = get_day_of_week(year, month, day)
 
     pharmacies = Pharmacy.objects.filter(gu=gu)
-    pharmacies = filter_by_language(pharmacies, language)
+    pharmacies = pharmacies.filter_by_language(pharmacies, language)
     pharmacies = filter_by_dayofweek_and_time(pharmacies, day_of_week, open_time, close_time)
+
+    if not pharmacies:
+        raise PharmacyNotFoundException
 
     paginator = Paginator(pharmacies, 10)
     pages = paginator.page(page)
@@ -77,10 +82,10 @@ def filter_by_dayofweek_and_time(queryset, day_of_week, open_time, close_time) -
     return queryset
 
 
-# 현재 영업중인지 정보 추가하기
-def addOpenField(datas) -> list:
-    for data in datas:
-        data['open'] = True
+# # 현재 영업중인지 정보 추가하기
+# def addOpenField(datas) -> list:
+#     for data in datas:
+#         data['open'] = True
 
 
 # 근처 약국 찾기
@@ -96,13 +101,11 @@ def nearby_pharmacy_list(request):
 
     pharmacies = Pharmacy.objects.filter(gu=gu)
     pharmacies = filter_by_language(pharmacies, language)
-    print(pharmacies)
-
     pharmacies = filter_by_dayofweek_and_time(pharmacies, day_of_week, now_time, now_time)
-    print(pharmacies)
-
     pharmacies = filter_by_location(pharmacies, latitude, longitude)
-    print(pharmacies)
+
+    if not pharmacies:
+        raise PharmacyNotFoundException
 
     datas = SimplePharmacySerializer(pharmacies, many=True).data
 
@@ -116,44 +119,34 @@ def filter_by_location(pharmacies, latitude, longitude):
 
 # 약국 저장하기
 @api_view(['POST'])
-def pharmacy_save(request) -> Response:
-    post_all_pharmacy_hours_list()
+def pharmacies_save(request) -> Response:
+    post_pharmacy_hours_list()
 
     return Response(status=status.HTTP_200_OK)
 
 
 class PharmacyDetails(APIView):
+
     def get(self, request, id) -> JsonResponse:
-        pharmacy = Pharmacy.objects.get(id=id)
+        pharmacy = get_object_or_404(Pharmacy, id=id)
+
         serializer = PharmacySerializer(pharmacy)
         return JsonResponse(serializer.data)
 
     def put(self, request, id) -> JsonResponse:
-        try:
-            query = Pharmacy.objects.get(id=id)
+        query = get_object_or_404(Pharmacy, id=id)
 
-            pharmacy = PharmacySerializer(query, data=request.data)
-            if pharmacy.is_valid():
-                pharmacy.save()
-                return JsonResponse(pharmacy.data)
-        except Pharmacy.DoesNotExist as e:
-            return JsonResponse({'error': {
-                'code': 404,
-                'message': "Pharmacy not found!"
-            }}, status=status.HTTP_404_NOT_FOUND)
+        pharmacy = PharmacySerializer(query, data=request.data)
+        if pharmacy.is_valid():
+            pharmacy.save()
+            return JsonResponse(pharmacy.data)
 
         return JsonResponse(pharmacy.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def delete(self, request, id) -> Response:
-        try:
-            query = Pharmacy.objects.get(id=id)
-        except Pharmacy.DoesNotExist:
-            return Response({'error': {
-                'code': 404,
-                'message': "User not found!"
-            }}, status=status.HTTP_404_NOT_FOUND)
+        pharmacy = get_object_or_404(Pharmacy, id=id)
 
-        query.delete()
+        pharmacy.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
