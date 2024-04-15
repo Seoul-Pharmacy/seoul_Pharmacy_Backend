@@ -1,6 +1,9 @@
 import logging
-from datetime import time
+from datetime import time, datetime
 
+logger = logging.getLogger('django')
+
+from common.exceptions import ApiNotFoundException, ApiInternalServerError, ApiKeyForbidden
 import requests
 
 from common import my_settings
@@ -17,12 +20,15 @@ PHARMACY_HOURS_DATA_UNIT = 1000
 def get_pharmacy_hours_total_count():
     data = requests.get(SIMPLE_PHARMACY_HOURS_API_URL % SECRET_KEY).json()
 
-    logging.warning(data['TbPharmacyOperateInfo']['list_total_count'])
+    logger.info("number of api request data: {}".format(data['TbPharmacyOperateInfo']['list_total_count']))
+
     return data['TbPharmacyOperateInfo']['list_total_count']
 
 
 # 모든 약국 운영시간 데이터 가져와서 저장
-def post_all_pharmacy_hours_list():
+def post_pharmacy_hours_list():
+    Pharmacy.objects.all().delete()
+
     pharmacy_hours_end_index = get_pharmacy_hours_total_count()
 
     for i in range(PHARMACY_HOURS_START_INDEX, pharmacy_hours_end_index, PHARMACY_HOURS_DATA_UNIT):
@@ -39,7 +45,8 @@ def post_all_pharmacy_hours_list():
 def get_pharmacy_hours_list(start_index, end_index):
     data = requests.get(PHARMACY_HOURS_API_URL % (SECRET_KEY, start_index, end_index)).json()
 
-    logging.warning(data)
+    check_err(data['TbPharmacyOperateInfo']['RESULT']['CODE'])
+
     return data['TbPharmacyOperateInfo']['row']
 
 
@@ -73,9 +80,8 @@ def pharmacy_save(data):
         sat_close_time=convert_to_datetime(data['DUTYTIME6C']),
         sun_close_time=convert_to_datetime(data['DUTYTIME7C']),
         holiday_close_time=convert_to_datetime(data['DUTYTIME8C']),
-        # last_modified=data['WORK_DTTM']
+        last_modified=datetime.strptime(data['WORK_DTTM'], "%Y-%m-%d %H:%M:%S.%f")
     )
-
     pharmacy.save()
 
 
@@ -83,7 +89,6 @@ def convert_to_datetime(time_str):
     if time_str == "":
         return None
 
-    logging.warning(time_str)
     hour = int(time_str[0:2])
     minute = int(time_str[2:4])
 
@@ -92,12 +97,13 @@ def convert_to_datetime(time_str):
 
     return time(hour=hour, minute=minute)
 
-# def check_err(code, message):
-#     if code == "INFO-200":
-#         logger.error("해당 요청에 대한 결과가 없습니다.")
-#     if code == "ERROR-500":
-#         logger.error("서버 오류 입니다.")
-#     if code == "ERROR-310":
-#         logger.error("해당하는 서비스가 없습니다.")
-#     if code == "INFO-100":
-#         logger.error("인증키가 유효하지 않습니다.")
+
+def check_err(code):
+    logger.info("api status code : {0}".format(code))
+
+    if code == "INFO-200":
+        raise ApiNotFoundException
+    if code == "ERROR-500":
+        raise ApiInternalServerError
+    if code == "INFO-100":
+        raise ApiKeyForbidden
