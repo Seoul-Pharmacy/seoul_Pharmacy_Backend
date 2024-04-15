@@ -56,46 +56,66 @@ def pharmacy_save(data):
     si = address[0]
     gu = address[1]
     road_name_address = address[2]
-    pharmacy = Pharmacy(
-        name=data['DUTYNAME'],
-        si=si,
-        gu=gu,
-        road_name_address=road_name_address,
-        main_number=data['DUTYTEL1'],
-        latitude=data['WGS84LAT'],
-        longitude=data['WGS84LON'],
-        mon_open_time=convert_to_datetime(data['DUTYTIME1S']),
-        tue_open_time=convert_to_datetime(data['DUTYTIME2S']),
-        wed_open_time=convert_to_datetime(data['DUTYTIME3S']),
-        thu_open_time=convert_to_datetime(data['DUTYTIME4S']),
-        fri_open_time=convert_to_datetime(data['DUTYTIME5S']),
-        sat_open_time=convert_to_datetime(data['DUTYTIME6S']),
-        sun_open_time=convert_to_datetime(data['DUTYTIME7S']),
-        holiday_open_time=convert_to_datetime(data['DUTYTIME8S']),
-        mon_close_time=convert_to_datetime(data['DUTYTIME1C']),
-        tue_close_time=convert_to_datetime(data['DUTYTIME2C']),
-        wed_close_time=convert_to_datetime(data['DUTYTIME3C']),
-        thu_close_time=convert_to_datetime(data['DUTYTIME4C']),
-        fri_close_time=convert_to_datetime(data['DUTYTIME5C']),
-        sat_close_time=convert_to_datetime(data['DUTYTIME6C']),
-        sun_close_time=convert_to_datetime(data['DUTYTIME7C']),
-        holiday_close_time=convert_to_datetime(data['DUTYTIME8C']),
-        last_modified=datetime.strptime(data['WORK_DTTM'], "%Y-%m-%d %H:%M:%S.%f")
-    )
-    pharmacy.save()
+
+    try:
+        pharmacy = Pharmacy(
+            name=data['DUTYNAME'],
+            si=si,
+            gu=gu,
+            road_name_address=road_name_address,
+            main_number=data['DUTYTEL1'],
+            latitude=data['WGS84LAT'],
+            longitude=data['WGS84LON'],
+            mon_open_time=convert_to_time(data['DUTYTIME1S']),
+            tue_open_time=convert_to_time(data['DUTYTIME2S']),
+            wed_open_time=convert_to_time(data['DUTYTIME3S']),
+            thu_open_time=convert_to_time(data['DUTYTIME4S']),
+            fri_open_time=convert_to_time(data['DUTYTIME5S']),
+            sat_open_time=convert_to_time(data['DUTYTIME6S']),
+            sun_open_time=convert_to_time(data['DUTYTIME7S']),
+            holiday_open_time=convert_to_time(data['DUTYTIME8S']),
+            mon_close_time=convert_to_time(data['DUTYTIME1C']),
+            tue_close_time=convert_to_time(data['DUTYTIME2C']),
+            wed_close_time=convert_to_time(data['DUTYTIME3C']),
+            thu_close_time=convert_to_time(data['DUTYTIME4C']),
+            fri_close_time=convert_to_time(data['DUTYTIME5C']),
+            sat_close_time=convert_to_time(data['DUTYTIME6C']),
+            sun_close_time=convert_to_time(data['DUTYTIME7C']),
+            holiday_close_time=convert_to_time(data['DUTYTIME8C']),
+            last_modified=datetime.strptime(data['WORK_DTTM'], "%Y-%m-%d %H:%M:%S.%f")
+        )
+        pharmacy.save()
+
+    except ValueError as e:
+        logger.info("{0}'s time field is not validated : {1}".format(data['DUTYNAME'], e))
+    except TypeError as e:
+        logger.info("{0}'s time field is not validated : {1}".format(data['DUTYNAME'], e))
 
 
-def convert_to_datetime(time_str):
-    if time_str == "":
-        return None
+def convert_to_time(time_str):
+    try:
+        if time_str == "":
+            return None
 
-    hour = int(time_str[0:2])
-    minute = int(time_str[2:4])
+        if len(time_str) < 4:
+            print(time_str)
+            time_str = time_str.zfill(4)
 
-    if hour >= 24:
-        hour = hour - 24
+        hour = int(time_str[0:2])
+        minute = int(time_str[2:4])
 
-    return time(hour=hour, minute=minute)
+        if hour >= 24:
+            hour = hour - 24
+
+        return time(hour=hour, minute=minute)
+    except ValueError as e:
+        raise ValueError(time_str)
+    except TypeError as e:
+        raise TypeError(time_str)
+
+
+
+
 
 
 def check_err(code):
