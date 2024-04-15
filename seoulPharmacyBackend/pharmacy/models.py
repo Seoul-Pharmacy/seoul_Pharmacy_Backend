@@ -1,5 +1,6 @@
 from django.db import models
 
+
 class Pharmacy(models.Model):
     id = models.AutoField(primary_key=True, db_column='pharmacy_id')
 
@@ -9,10 +10,10 @@ class Pharmacy(models.Model):
     gu = models.CharField(max_length=10, blank=False, null=False)
     road_name_address = models.CharField(max_length=100, blank=False, null=False)
 
-    main_number = models.CharField(max_length=13)
+    main_number = models.CharField(max_length=20)
 
-    latitude = models.DecimalField(max_digits=9, decimal_places=6, blank=False, null=False)
-    longitude = models.DecimalField(max_digits=9, decimal_places=6, blank=False, null=False)
+    latitude = models.DecimalField(max_digits=23, decimal_places=20, blank=False, null=False)
+    longitude = models.DecimalField(max_digits=23, decimal_places=20, blank=False, null=False)
 
     speaking_english = models.BooleanField(null=False, default=False)
     speaking_japanese = models.BooleanField(null=False, default=False)
@@ -36,6 +37,7 @@ class Pharmacy(models.Model):
     sun_close_time = models.TimeField(null=True)
     holiday_close_time = models.TimeField(null=True)
 
+    # last_modified = models.DateTimeField(auto_now=True)
+
     def __str__(self):
         return self.name
-
