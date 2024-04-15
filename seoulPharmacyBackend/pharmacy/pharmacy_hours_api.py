@@ -3,7 +3,7 @@ from datetime import time
 
 import requests
 
-from config import my_settings
+from common import my_settings
 from pharmacy.models import Pharmacy
 
 SECRET_KEY = my_settings.SEOUL_API_SECRET_KEY
