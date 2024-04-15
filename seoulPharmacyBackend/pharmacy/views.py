@@ -9,6 +9,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from .models import Pharmacy
+from .pharmacy_hours_api import post_all_pharmacy_hours_list
 from .serializers import PharmacySerializer, SimplePharmacySerializer
 
 
@@ -113,14 +114,12 @@ def filter_by_location(pharmacies, latitude, longitude):
     return pharmacies
 
 
-# http로 약국 저장하기
+# 약국 저장하기
 @api_view(['POST'])
 def pharmacy_save(request) -> Response:
-    serializer = PharmacySerializer(data=request.data)
-    if serializer.is_valid():
-        serializer.save()
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
-    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    post_all_pharmacy_hours_list()
+
+    return Response(status=status.HTTP_200_OK)
 
 
 class PharmacyDetails(APIView):
@@ -156,3 +155,5 @@ class PharmacyDetails(APIView):
 
         query.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
