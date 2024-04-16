@@ -21,14 +21,15 @@ logger = logging.getLogger('django')
 # 구, 시간, 외국어로 검색하기
 @api_view(['GET'])
 def pharmacy_list(request) -> Response:
+    now = datetime.now()
     page = request.GET.get("page")
     gu = request.GET.get("gu", default=None)
     language = request.GET.get("language", default=None)
     enter_time = request.GET.get("enterTime")
     exit_time = request.GET.get("exitTime")
-    year = int(request.GET.get("year"))
-    month = int(request.GET.get("month"))
-    day = int(request.GET.get("day"))
+    year = int(request.GET.get("year", default=now.year))
+    month = int(request.GET.get("month", default=now.month))
+    day = int(request.GET.get("day", default=now.day))
 
     day_of_week = get_day_of_week(year, month, day)
 
