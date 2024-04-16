@@ -1,13 +1,13 @@
 import logging
 from datetime import time, datetime
 
-logger = logging.getLogger('django')
-
-from common.exceptions import ApiNotFoundException, ApiInternalServerError, ApiKeyForbidden
 import requests
 
 from common import my_settings
+from common.exceptions import ApiNotFound, ApiInternalServerError, ApiKeyForbidden, ApiBadRequest
 from pharmacy.models import Pharmacy
+
+logger = logging.getLogger('django')
 
 SECRET_KEY = my_settings.SEOUL_API_SECRET_KEY
 PHARMACY_HOURS_API_URL = "http://openapi.seoul.go.kr:8088/%s/json/TbPharmacyOperateInfo/%d/%d/"
@@ -17,19 +17,23 @@ PHARMACY_HOURS_DATA_UNIT = 1000
 
 
 # 약국 운영시간 데이터 개수 가져오기
-def get_pharmacy_hours_total_count():
+def get_pharmacy_hours_total_count() -> int:
     data = requests.get(SIMPLE_PHARMACY_HOURS_API_URL % SECRET_KEY).json()
 
-    logger.info("number of api request data: {}".format(data['TbPharmacyOperateInfo']['list_total_count']))
+    check_err(data)
 
-    return data['TbPharmacyOperateInfo']['list_total_count']
+    total_count = data['TbPharmacyOperateInfo']['list_total_count']
+
+    logger.info("number of api request data: {}".format(total_count))
+
+    return total_count
 
 
 # 모든 약국 운영시간 데이터 가져와서 저장
 def post_pharmacy_hours_list():
-    Pharmacy.objects.all().delete()
-
     pharmacy_hours_end_index = get_pharmacy_hours_total_count()
+
+    Pharmacy.objects.all().delete()
 
     for i in range(PHARMACY_HOURS_START_INDEX, pharmacy_hours_end_index, PHARMACY_HOURS_DATA_UNIT):
         start = i
@@ -42,16 +46,16 @@ def post_pharmacy_hours_list():
 
 
 # 부분 약국 운영시간 데이터 가져오기
-def get_pharmacy_hours_list(start_index, end_index):
+def get_pharmacy_hours_list(start_index: int, end_index: int) -> dict:
     data = requests.get(PHARMACY_HOURS_API_URL % (SECRET_KEY, start_index, end_index)).json()
 
-    check_err(data['TbPharmacyOperateInfo']['RESULT']['CODE'])
+    check_err(data)
 
     return data['TbPharmacyOperateInfo']['row']
 
 
 # 약국 저장
-def pharmacy_save(data):
+def pharmacy_save(data: dict):
     address = data['DUTYADDR'].split(' ', maxsplit=2)
     si = address[0]
     gu = address[1]
@@ -92,13 +96,12 @@ def pharmacy_save(data):
         logger.info("{0}'s time field is not validated : {1}".format(data['DUTYNAME'], e))
 
 
-def convert_to_time(time_str):
+def convert_to_time(time_str: str):
     try:
         if time_str == "":
             return None
 
         if len(time_str) < 4:
-            print(time_str)
             time_str = time_str.zfill(4)
 
         hour = int(time_str[0:2])
@@ -114,16 +117,17 @@ def convert_to_time(time_str):
         raise TypeError(time_str)
 
 
+def check_err(data: dict):
+    code = data['TbPharmacyOperateInfo']['RESULT']['CODE']
 
-
-
-
-def check_err(code):
     logger.info("api status code : {0}".format(code))
-
-    if code == "INFO-200":
-        raise ApiNotFoundException
-    if code == "ERROR-500":
-        raise ApiInternalServerError
-    if code == "INFO-100":
+    if code == "INFO-000":
+        return
+    elif code == "INFO-100":
         raise ApiKeyForbidden
+    elif code == "INFO-200":
+        raise ApiNotFound
+    elif code == "ERROR-300":
+        raise ApiBadRequest
+    else:
+        raise ApiInternalServerError
