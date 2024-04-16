@@ -1,7 +1,6 @@
 import logging
 from datetime import datetime
 
-from django.core.paginator import Paginator
 from django.db.models import QuerySet
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
@@ -10,6 +9,7 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from common.custom_paginations import CustomPageNumberPagination
 from common.exceptions import PharmacyNotFoundException
 from .models import Pharmacy
 from .pharmacy_hours_api import post_pharmacy_hours_list
@@ -44,12 +44,12 @@ def pharmacy_list(request) -> Response:
     if not pharmacies:
         raise PharmacyNotFoundException
 
-    paginator = Paginator(pharmacies, 10)
-    pages = paginator.page(page)
-
+    paginator = CustomPageNumberPagination()
+    pages = paginator.paginate_queryset(pharmacies, request)
     datas = SimplePharmacySerializer(pages, many=True).data
 
-    return Response(datas, status=status.HTTP_200_OK)
+    return paginator.get_paginated_response(datas)
+
 
 # 구에 해당하는 약국만 필터링, None이면 그대로
 def filter_by_gu(queryset, gu) -> QuerySet:
@@ -162,5 +162,3 @@ class PharmacyDetails(APIView):
 
         pharmacy.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
-
-
