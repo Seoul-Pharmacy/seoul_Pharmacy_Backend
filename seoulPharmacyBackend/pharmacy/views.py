@@ -19,7 +19,7 @@ from .serializers import PharmacySerializer, SimplePharmacySerializer
 @api_view(['GET'])
 def pharmacy_list(request) -> Response:
     page = request.GET.get("page")
-    gu = request.GET.get("gu")
+    gu = request.GET.get("gu", default=None)
     language = request.GET.get("language", default=None)
     enter_time = request.GET.get("enterTime")
     exit_time = request.GET.get("exitTime")
@@ -29,9 +29,12 @@ def pharmacy_list(request) -> Response:
 
     day_of_week = get_day_of_week(year, month, day)
 
-    pharmacies = Pharmacy.objects.filter(gu=gu)
-    pharmacies = pharmacies.filter_by_language(pharmacies, language)
-    pharmacies = filter_by_dayofweek_and_time(pharmacies, day_of_week, open_time, close_time)
+
+
+    pharmacies = Pharmacy.objects.all().order_by('id')
+    pharmacies = filter_by_gu(pharmacies, gu)
+    pharmacies = filter_by_language(pharmacies, language)
+    pharmacies = filter_by_dayofweek_and_time(pharmacies, day_of_week, enter_time, exit_time)
 
     if not pharmacies:
         raise PharmacyNotFoundException
@@ -43,8 +46,14 @@ def pharmacy_list(request) -> Response:
 
     return Response(datas, status=status.HTTP_200_OK)
 
+# 구에 해당하는 약국만 필터링, None이면 그대로
+def filter_by_gu(queryset, gu) -> QuerySet:
+    if gu is not None:
+        return queryset.filter(gu=gu)
+    return queryset
 
-# 언어에 맞는 약국만 필터링
+
+# 언어에 맞는 약국만 필터링, None이면 그대로
 def filter_by_language(queryset, language) -> QuerySet:
     if language == "en":
         return queryset.filter(speaking_english=True)
