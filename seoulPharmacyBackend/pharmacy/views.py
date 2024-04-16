@@ -21,8 +21,8 @@ def pharmacy_list(request) -> Response:
     page = request.GET.get("page")
     gu = request.GET.get("gu")
     language = request.GET.get("language", default=None)
-    open_time = request.GET.get("openTime")
-    close_time = request.GET.get("closeTime")
+    enter_time = request.GET.get("enterTime")
+    exit_time = request.GET.get("exitTime")
     year = int(request.GET.get("year"))
     month = int(request.GET.get("month"))
     day = int(request.GET.get("day"))
@@ -64,21 +64,21 @@ def get_day_of_week(year, month, day) -> str:
 
 
 # 특정 요일 운영시간에 해당하는 약국만 필터링
-def filter_by_dayofweek_and_time(queryset, day_of_week, open_time, close_time) -> QuerySet:
+def filter_by_dayofweek_and_time(queryset, day_of_week, enter_time, exit_time) -> QuerySet:
     if day_of_week == "mon":
-        return queryset.filter(mon_open_time__lte=open_time, mon_close_time__gte=close_time)
+        return queryset.filter(mon_open_time__lte=enter_time, mon_close_time__gte=exit_time)
     elif day_of_week == "tue":
-        return queryset.filter(tue_open_time__lte=open_time, tue_close_time__gte=close_time)
+        return queryset.filter(tue_open_time__lte=enter_time, tue_close_time__gte=exit_time)
     elif day_of_week == "wed":
-        return queryset.filter(wed_open_time__lte=open_time, wed_close_time__gte=close_time)
+        return queryset.filter(wed_open_time__lte=enter_time, wed_close_time__gte=exit_time)
     elif day_of_week == "thu":
-        return queryset.filter(thu_open_time__lte=open_time, thu_close_time__gte=close_time)
+        return queryset.filter(thu_open_time__lte=enter_time, thu_close_time__gte=exit_time)
     elif day_of_week == "fri":
-        return queryset.filter(fri_open_time__lte=open_time, fri_close_time__gte=close_time)
+        return queryset.filter(fri_open_time__lte=enter_time, fri_close_time__gte=exit_time)
     elif day_of_week == "sat":
-        return queryset.filter(sat_open_time__lte=open_time, sat_close_time__gte=close_time)
+        return queryset.filter(sat_open_time__lte=enter_time, sat_close_time__gte=exit_time)
     elif day_of_week == "sun":
-        return queryset.filter(sun_open_time__lte=open_time, sun_close_time__gte=close_time)
+        return queryset.filter(sun_open_time__lte=enter_time, sun_close_time__gte=exit_time)
     return queryset
 
 
