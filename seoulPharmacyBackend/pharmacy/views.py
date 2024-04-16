@@ -12,7 +12,7 @@ from rest_framework.views import APIView
 from common.custom_paginations import CustomPageNumberPagination
 from common.exceptions import PharmacyNotFoundException
 from .models import Pharmacy
-from .pharmacy_hours_api import post_pharmacy_hours_list
+from .pharmacy_hours_api import update_pharmacy_hours_list
 from .serializers import PharmacySerializer, SimplePharmacySerializer
 
 logger = logging.getLogger('django')
@@ -114,10 +114,13 @@ def nearby_pharmacy_list(request):
     now_time = now.time()
     day_of_week = get_day_of_week(now.year, now.month, now.day)
 
-    pharmacies = Pharmacy.objects.filter(gu=gu)
+    pharmacies = Pharmacy.objects.all()
+    pharmacies = filter_by_gu(pharmacies, gu)
     pharmacies = filter_by_language(pharmacies, language)
     pharmacies = filter_by_dayofweek_and_time(pharmacies, day_of_week, now_time, now_time)
     pharmacies = filter_by_location(pharmacies, latitude, longitude)
+
+    print(pharmacies.values())
 
     if not pharmacies:
         raise PharmacyNotFoundException
@@ -133,9 +136,9 @@ def filter_by_location(pharmacies, latitude, longitude):
 
 
 # 약국 저장하기
-@api_view(['POST'])
-def pharmacies_save(request) -> Response:
-    post_pharmacy_hours_list()
+@api_view(['PUT'])
+def pharmacies_update(request) -> Response:
+    update_pharmacy_hours_list()
 
     return Response(status=status.HTTP_200_OK)
 

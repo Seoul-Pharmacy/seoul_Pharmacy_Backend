@@ -30,7 +30,7 @@ def get_pharmacy_hours_total_count() -> int:
 
 
 # 모든 약국 운영시간 데이터 가져와서 저장
-def post_pharmacy_hours_list():
+def update_pharmacy_hours_list():
     pharmacy_hours_end_index = get_pharmacy_hours_total_count()
 
     Pharmacy.objects.all().delete()
