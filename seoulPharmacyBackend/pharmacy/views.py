@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime
 
 from django.core.paginator import Paginator
@@ -14,6 +15,8 @@ from .models import Pharmacy
 from .pharmacy_hours_api import post_pharmacy_hours_list
 from .serializers import PharmacySerializer, SimplePharmacySerializer
 
+logger = logging.getLogger('django')
+
 
 # 구, 시간, 외국어로 검색하기
 @api_view(['GET'])
@@ -29,7 +32,9 @@ def pharmacy_list(request) -> Response:
 
     day_of_week = get_day_of_week(year, month, day)
 
-
+    logger.info(
+        "pharmacy list request's page : {0}, gu : {1}, language : {2}, open_time : {3}, close_time : {4}, day_of_week : {5}".format(
+            page, gu, language, enter_time, exit_time, day_of_week))
 
     pharmacies = Pharmacy.objects.all().order_by('id')
     pharmacies = filter_by_gu(pharmacies, gu)
