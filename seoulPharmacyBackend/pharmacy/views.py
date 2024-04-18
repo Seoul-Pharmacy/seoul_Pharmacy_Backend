@@ -14,7 +14,8 @@ from common.exceptions import PharmacyNotFoundException
 from .machine_learning import filter_by_location
 from .models import Pharmacy
 from .pharmacy_hours_api import update_pharmacy_hours_list
-from .serializers import PharmacySerializer, SimplePharmacySerializer
+from .pharmacy_languages_api import update_pharmacy_languages
+from .serializers import PharmacySerializer, SimplePharmacySerializer, SimpleNearbyPharmacySerializer
 
 logger = logging.getLogger('django')
 
@@ -124,7 +125,7 @@ def nearby_pharmacy_list(request):
     if not pharmacies:
         raise PharmacyNotFoundException
 
-    datas = PharmacySerializer(pharmacies, many=True).data
+    datas = SimpleNearbyPharmacySerializer(pharmacies, many=True).data
 
     datas = filter_by_location(datas, float(latitude), float(longitude))
 
@@ -138,10 +139,17 @@ def nearby_pharmacy_list(request):
 
 
 
-# 약국 저장하기
+# 약국 운영시간 저장하기
 @api_view(['PUT'])
-def pharmacies_update(request) -> Response:
+def pharmacies_hours_update(request) -> Response:
     update_pharmacy_hours_list()
+
+    return Response(status=status.HTTP_200_OK)
+
+# 약국 외국어 정보 저장하기
+@api_view(['PATCH'])
+def pharmacies_languages_update(request):
+    update_pharmacy_languages()
 
     return Response(status=status.HTTP_200_OK)
 
@@ -169,3 +177,5 @@ class PharmacyDetails(APIView):
 
         pharmacy.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
