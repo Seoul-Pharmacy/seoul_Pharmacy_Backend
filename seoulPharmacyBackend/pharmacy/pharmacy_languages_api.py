@@ -1,6 +1,7 @@
 import logging
 
 import pandas as pd
+from numpy import nan
 
 from pharmacy.models import Pharmacy
 
@@ -14,6 +15,8 @@ filename = 'static/excel/외국어 가능 약국 현황.xlsx'
 
 def update_pharmacy_languages():
     df = pd.read_excel(filename, skiprows=3, usecols='C,D,E,F,G,H')
+    # 엑셀의 nan값을 ''로 변경
+    df = df.fillna('')
 
     for index, row in df.iterrows():
         speaking_english = make_speaking_language(row['영어'])
@@ -34,6 +37,6 @@ def update_pharmacy_languages():
 
 
 def make_speaking_language(data):
-    if data == "nan":
+    if data == "":
         return False
     return True
