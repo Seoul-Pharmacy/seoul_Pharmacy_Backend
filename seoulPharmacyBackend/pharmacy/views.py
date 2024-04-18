@@ -11,6 +11,7 @@ from rest_framework.views import APIView
 
 from common.custom_paginations import CustomPageNumberPagination
 from common.exceptions import PharmacyNotFoundException
+from .machine_learning import filter_by_location
 from .models import Pharmacy
 from .pharmacy_hours_api import update_pharmacy_hours_list
 from .serializers import PharmacySerializer, SimplePharmacySerializer
@@ -110,6 +111,7 @@ def nearby_pharmacy_list(request):
     language = request.GET.get("language", default=None)
     latitude = request.GET.get("latitude")
     longitude = request.GET.get("longitude")
+
     now = datetime.now()
     now_time = now.time()
     day_of_week = get_day_of_week(now.year, now.month, now.day)
@@ -118,21 +120,22 @@ def nearby_pharmacy_list(request):
     pharmacies = filter_by_gu(pharmacies, gu)
     pharmacies = filter_by_language(pharmacies, language)
     pharmacies = filter_by_dayofweek_and_time(pharmacies, day_of_week, now_time, now_time)
-    pharmacies = filter_by_location(pharmacies, latitude, longitude)
-
-    print(pharmacies.values())
 
     if not pharmacies:
         raise PharmacyNotFoundException
 
-    datas = SimplePharmacySerializer(pharmacies, many=True).data
+    datas = PharmacySerializer(pharmacies, many=True).data
 
-    return Response(datas, status=status.HTTP_200_OK)
+    datas = filter_by_location(datas, float(latitude), float(longitude))
+
+    logger.info("nearby_pharmacy_list : {0}".format(datas))
+
+    paginator = CustomPageNumberPagination()
+    pages = paginator.paginate_queryset(datas, request)
+
+    return paginator.get_paginated_response(pages)
 
 
-# 현재 위도, 경도를 사용하여 가까운 5개 찾기
-def filter_by_location(pharmacies, latitude, longitude):
-    return pharmacies
 
 
 # 약국 저장하기
