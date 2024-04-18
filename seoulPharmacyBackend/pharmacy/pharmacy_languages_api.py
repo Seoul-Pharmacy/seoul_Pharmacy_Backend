@@ -31,9 +31,9 @@ def update_pharmacy_languages():
             pharmacy.speaking_japanese = speaking_japanese
             pharmacy.save()
         except Pharmacy.DoesNotExist:
-            logger.info("{0}({1}, {2})에 대한 데이터가 없습니다.".format(row["Unnamed: 2"], main_number, row["Unnamed: 3"]))
+            logger.error("{0}({1}, {2})에 대한 데이터가 없습니다.".format(row["Unnamed: 2"], main_number, row["Unnamed: 3"]))
         except Exception as e:
-            logger.info("Error : {0}".format(e))
+            logger.error("Error : {0}".format(e))
 
 
 def make_speaking_language(data):

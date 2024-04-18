@@ -91,9 +91,9 @@ def pharmacy_save(data: dict):
         pharmacy.save()
 
     except ValueError as e:
-        logger.info("{0}'s time field is not validated : {1}".format(data['DUTYNAME'], e))
+        logger.error("{0}'s time field is not validated : {1}".format(data['DUTYNAME'], e))
     except TypeError as e:
-        logger.info("{0}'s time field is not validated : {1}".format(data['DUTYNAME'], e))
+        logger.error("{0}'s time field is not validated : {1}".format(data['DUTYNAME'], e))
 
 
 def convert_to_time(time_str: str):
