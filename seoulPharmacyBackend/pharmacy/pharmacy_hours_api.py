@@ -98,7 +98,7 @@ def pharmacy_save(data: dict):
     except IntegrityError as e:
         logger.error("{0}'s error : {1}".format(data['DUTYNAME'], e))
     except Exception as e:
-        logger.error("Error : {0}".format(e))
+        logger.error("{0}'s error : {1}".format(data['DUTYNAME'], e))
 
 
 def convert_to_time(time_str: str):
@@ -120,6 +120,8 @@ def convert_to_time(time_str: str):
         raise ValueError(time_str)
     except TypeError as e:
         raise TypeError(time_str)
+    except Exception as e:
+        raise Exception(time_str)
 
 
 def check_err(data: dict):
