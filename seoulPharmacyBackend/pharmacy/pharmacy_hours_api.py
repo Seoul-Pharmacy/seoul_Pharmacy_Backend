@@ -97,6 +97,8 @@ def pharmacy_save(data: dict):
         logger.error("{0}'s error : {1}".format(data['DUTYNAME'], e))
     except IntegrityError as e:
         logger.error("{0}'s error : {1}".format(data['DUTYNAME'], e))
+    except Exception as e:
+        logger.error("Error : {0}".format(e))
 
 
 def convert_to_time(time_str: str):

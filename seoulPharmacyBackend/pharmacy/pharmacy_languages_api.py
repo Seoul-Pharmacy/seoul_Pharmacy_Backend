@@ -2,6 +2,7 @@ import logging
 
 import xmltodict
 from SPARQLWrapper import SPARQLWrapper, XML
+from django.core.exceptions import MultipleObjectsReturned
 
 from pharmacy.models import Pharmacy
 
@@ -79,7 +80,7 @@ def update_pharmacy_languages():
 def get_pharmacy_languages_list(offset: int, limit: int) -> dict:
     sparql = SPARQLWrapper(PHARMACY_LANGUAGE_API_URL)
 
-    sparql.setQuery(STATE%(offset, limit))
+    sparql.setQuery(STATE % (offset, limit))
     sparql.setReturnFormat(XML)
     results = sparql.query().convert()
     return xmltodict.parse(results.toxml())
@@ -125,5 +126,7 @@ def update_pharmacy_language(name, language, main_number):
         pharmacy.save()
     except Pharmacy.DoesNotExist:
         logger.error("{0}({1})에 대한 데이터가 없습니다.".format(name, main_number))
+    except MultipleObjectsReturned as e:
+        logger.error("{0}({1})에 대한 데이터가 여러개 있습니다. : {2}".format(name, main_number, e))
     except Exception as e:
         logger.error("Error : {0}".format(e))
