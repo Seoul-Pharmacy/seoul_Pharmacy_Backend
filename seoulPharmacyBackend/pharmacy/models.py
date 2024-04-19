@@ -2,6 +2,9 @@ from django.db import models
 
 
 class Pharmacy(models.Model):
+    class Meta:
+        unique_together = ('name', 'gu')
+
     id = models.AutoField(primary_key=True, db_column='pharmacy_id')
 
     name = models.CharField(max_length=200, blank=False, null=False)

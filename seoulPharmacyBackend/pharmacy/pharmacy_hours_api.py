@@ -2,6 +2,7 @@ import logging
 from datetime import time, datetime
 
 import requests
+from django.db import IntegrityError
 
 from common import my_settings
 from common.exceptions import ApiNotFound, ApiInternalServerError, ApiKeyForbidden, ApiBadRequest
@@ -91,9 +92,11 @@ def pharmacy_save(data: dict):
         pharmacy.save()
 
     except ValueError as e:
-        logger.error("{0}'s time field is not validated : {1}".format(data['DUTYNAME'], e))
+        logger.error("{0}'s error: {1}".format(data['DUTYNAME'], e))
     except TypeError as e:
-        logger.error("{0}'s time field is not validated : {1}".format(data['DUTYNAME'], e))
+        logger.error("{0}'s error : {1}".format(data['DUTYNAME'], e))
+    except IntegrityError as e:
+        logger.error("{0}'s error : {1}".format(data['DUTYNAME'], e))
 
 
 def convert_to_time(time_str: str):
