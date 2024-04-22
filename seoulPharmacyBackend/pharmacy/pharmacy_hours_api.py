@@ -92,13 +92,13 @@ def pharmacy_save(data: dict):
         pharmacy.save()
 
     except ValueError as e:
-        logger.error("{0}'s error: {1}".format(data['DUTYNAME'], e))
+        logger.error("{0}({1})'s error: {2}".format(data['DUTYNAME'], gu, e))
     except TypeError as e:
-        logger.error("{0}'s error : {1}".format(data['DUTYNAME'], e))
+        logger.error("{0}({1})'s error : {2}".format(data['DUTYNAME'], gu, e))
     except IntegrityError as e:
-        logger.error("{0}'s error : {1}".format(data['DUTYNAME'], e))
+        logger.error("{0}({1})'s error : {2}".format(data['DUTYNAME'], gu, e))
     except Exception as e:
-        logger.error("{0}'s error : {1}".format(data['DUTYNAME'], e))
+        logger.error("{0}({1})'s error : {2}".format(data['DUTYNAME'], gu, e))
 
 
 def convert_to_time(time_str: str):
