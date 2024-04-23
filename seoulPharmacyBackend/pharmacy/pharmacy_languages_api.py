@@ -13,81 +13,96 @@ PHARMACY_LANGUAGE_API_URL = "http://lod.seoul.go.kr/sparql"
 COUNT_STATE = """
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
-PREFIX seoul: <http://lod.seoul.go.kr/ontology/>
 PREFIX schema: <http://schema.org/>
+PREFIX juso: <http://rdfs.co/juso/>
+PREFIX jusokr: <http://rdfs.co/juso/kr/>
+PREFIX seoul: <http://lod.seoul.go.kr/ontology/>
 
 SELECT (COUNT(*) AS ?count)
 WHERE {
-    ?pharmacy rdf:type schema:Pharmacy .
-    ?pharmacy rdfs:label ?name .
-    FILTER ( lang(?name) = "ko" )
-    ?pharmacy seoul:language ?language .
-    ?pharmacy schema:telephone ?tel .
+  ?pharmacy rdf:type schema:Pharmacy .
+  ?pharmacy rdfs:label ?name .
+  FILTER (lang(?name) = "ko")
+  ?pharmacy juso:address ?juso .
+  ?pharmacy seoul:language ?language_uri .
+  ?language_uri rdfs:label ?language .
+  ?juso jusokr:si_gun_gu <http://lod.seoul.go.kr/resource/AdministrativeDivision/%s> .
+  <http://lod.seoul.go.kr/resource/AdministrativeDivision/%s> rdfs:label ?gu .
+  FILTER (lang(?gu) = "ko")
 }
 """
 
 STATE = """
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
-PREFIX seoul: <http://lod.seoul.go.kr/ontology/>
 PREFIX schema: <http://schema.org/>
+PREFIX juso: <http://rdfs.co/juso/>
+PREFIX jusokr: <http://rdfs.co/juso/kr/>
+PREFIX seoul: <http://lod.seoul.go.kr/ontology/>
 
-SELECT *
-WHERE { 
-    ?pharmacy rdf:type schema:Pharmacy . 
-    ?pharmacy rdfs:label ?name . 
-    FILTER ( lang(?name) = "ko" )
-    ?pharmacy seoul:language ?language .
-    ?pharmacy schema:telephone ?tel .
-} OFFSET %d LIMIT %d
+SELECT ?name ?language ?gu
+WHERE {
+  ?pharmacy rdf:type schema:Pharmacy .
+  ?pharmacy rdfs:label ?name .
+  FILTER (lang(?name) = "ko")
+  ?pharmacy juso:address ?juso .
+  ?pharmacy seoul:language ?language_uri .
+  ?language_uri rdfs:label ?language .
+  ?juso jusokr:si_gun_gu <http://lod.seoul.go.kr/resource/AdministrativeDivision/%s> .
+  <http://lod.seoul.go.kr/resource/AdministrativeDivision/%s> rdfs:label ?gu .
+  FILTER (lang(?gu) = "ko")
+} OFFSET %d LIMIT %d 
 """
+
+GU_LIST = ["Gangdonggu", "Songpagu", "Gangnamgu", "Seochogu", "Gwanakgu", "Dongjakgu", "Yeongdeungpogu", "Geumcheongu", "Gurogu", "Gangseogu", "Yangcheongu", "Mapogu", "Seodaemungu", "Eunpyeonggu", "Nowongu", "Dobonggu", "Gangbukgu", "Seongbukgu", "Jungranggu", "Dongdaemungu", "Gwangjingu", "Seongdonggu", "Yongsangu", "Junggu", "Jongrogu"]
 
 PHARMACY_LANGUAGE_START_INDEX = 0
 PHARMACY_LANGUAGE_DATA_UNIT = 100
 
 
 # API에 요청하여 데이터 개수를 가져오는 함수
-def get_pharmacy_languages_total_count() -> dict:
-    sparql = SPARQLWrapper(PHARMACY_LANGUAGE_API_URL)
-
-    sparql.setQuery(COUNT_STATE)
+def get_sparql_data(url, state) -> dict:
+    sparql = SPARQLWrapper(url)
+    sparql.setQuery(state)
     sparql.setReturnFormat(XML)
     results = sparql.query().convert()
+
     return xmltodict.parse(results.toxml())
 
 
+# 응답에서 count정보만 가져오는 함수
 def extract_total_count(data: dict) -> int:
     return int(data['sparql']['results']['result']['binding']['literal']['#text'])
 
 
-# API에 요청하여 응답을 기존 데이터에 저장하는 함수
-def update_pharmacy_languages():
-    pharmacy_hours_end_index = extract_total_count(get_pharmacy_languages_total_count())
+# 전체 Gu에 대해 API에 요청 및 저장
+def update_pharmacy_languages_about_all_gu():
+    for gu in GU_LIST:
+        update_pharmacy_languages(gu)
 
-    logger.info("pharmacy_languages api의 총 데이터 개수 : {}".format(pharmacy_hours_end_index))
+
+# API에 요청하여 응답을 기존 데이터에 저장하는 함수
+def update_pharmacy_languages(gu):
+    pharmacy_hours_end_index = extract_total_count(get_sparql_data(PHARMACY_LANGUAGE_API_URL, COUNT_STATE % (gu,gu)))
+
+    logger.info("pharmacy_languages api {0}의 총 데이터 개수 : {1}".format(gu, pharmacy_hours_end_index))
 
     for i in range(PHARMACY_LANGUAGE_START_INDEX, pharmacy_hours_end_index, PHARMACY_LANGUAGE_DATA_UNIT):
         offset = i
         limit = min(PHARMACY_LANGUAGE_DATA_UNIT, pharmacy_hours_end_index - i)
 
-        language_and_tel_list = extract_language_and_tel(get_pharmacy_languages_list(offset, limit))
+        pharmacy_languages_list = extract_pharmacy_languages(
+            get_sparql_data(PHARMACY_LANGUAGE_API_URL, STATE % (gu, gu, offset, limit)))
 
-        for language_and_tel in language_and_tel_list:
-            update_pharmacy_language(language_and_tel['name'], language_and_tel['language'], language_and_tel['tel'])
-
-
-# API에 요청하여 데이터를 offset부터 limit 개수 만큼 가져오는 함수
-def get_pharmacy_languages_list(offset: int, limit: int) -> dict:
-    sparql = SPARQLWrapper(PHARMACY_LANGUAGE_API_URL)
-
-    sparql.setQuery(STATE % (offset, limit))
-    sparql.setReturnFormat(XML)
-    results = sparql.query().convert()
-    return xmltodict.parse(results.toxml())
+        for pharmacy_languages in pharmacy_languages_list:
+            update_pharmacy_language(pharmacy_languages)
 
 
 # API 응답에서 URI와 전화번호를 추출하는 함수
-def extract_language_and_tel(data: dict) -> list:
+def extract_pharmacy_languages(data: dict) -> list:
+
+    # logger.info("api로 부터 온 데이터 : {}".format(data))
+
     result = []
 
     for entry in data['sparql']['results']['result']:
@@ -96,9 +111,10 @@ def extract_language_and_tel(data: dict) -> list:
             if item['@name'] == 'name':
                 entry_dict[item['@name']] = item['literal']['#text']
             elif item['@name'] == 'language':
-                entry_dict[item['@name']] = extract_language_name(item['uri'])
-            elif item['@name'] == 'tel':
-                entry_dict[item['@name']] = item['literal']
+                entry_dict['language'] = item['literal']['#text']
+            elif item['@name'] == 'gu':
+                entry_dict['gu'] = item['literal']['#text']
+
         result.append(entry_dict)
     return result
 
@@ -112,21 +128,27 @@ def extract_language_name(uri):
 
 
 # 언어 정보를 db에 저장
-def update_pharmacy_language(name, language, main_number):
+def update_pharmacy_language(pharmacy_languages):
+    name = pharmacy_languages["name"]
+    language = pharmacy_languages["language"]
+    address = pharmacy_languages["gu"]
+
+    # logger.info("update date : ({}, {}, {})".format(road_name_address, name, language))
+
     try:
-        pharmacy = Pharmacy.objects.get(main_number__contains=main_number)
+        pharmacy = Pharmacy.objects.get(gu__contains=address, name=name)
 
         if language == "영어":
             pharmacy.speaking_english = True
         elif language == "일어":
-            pharmacy.speaking_chinese = True
-        elif language == "중국어":
             pharmacy.speaking_japanese = True
+        elif language == "중국어":
+            pharmacy.speaking_chinese = True
 
         pharmacy.save()
     except Pharmacy.DoesNotExist:
-        logger.error("{0}({1})에 대한 데이터가 없습니다.".format(name, main_number))
+        logger.error("{0}({1})에 대한 데이터가 없습니다.".format(name, address))
     except MultipleObjectsReturned as e:
-        logger.error("{0}({1})에 대한 데이터가 여러개 있습니다. : {2}".format(name, main_number, e))
+        logger.error("{0}({1})에 대한 데이터가 여러개 있습니다. : {2}".format(name, address, e))
     except Exception as e:
-        logger.error("Error : {0}".format(e))
+        logger.error("{0}({1})'s Error : {2}".format(name, address, e))

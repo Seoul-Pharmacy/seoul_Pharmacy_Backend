@@ -14,7 +14,7 @@ from common.exceptions import PharmacyNotFoundException
 from .machine_learning import filter_by_location
 from .models import Pharmacy
 from .pharmacy_hours_api import update_pharmacy_hours_list
-from .pharmacy_languages_api import update_pharmacy_languages
+from .pharmacy_languages_api import update_pharmacy_languages_about_all_gu
 from .serializers import PharmacySerializer, SimplePharmacySerializer, SimpleNearbyPharmacySerializer
 
 logger = logging.getLogger('django')
@@ -149,7 +149,7 @@ def pharmacies_hours_update(request) -> Response:
 # 약국 외국어 정보 저장하기
 @api_view(['PATCH'])
 def pharmacies_languages_update(request):
-    update_pharmacy_languages()
+    update_pharmacy_languages_about_all_gu()
 
     return Response(status=status.HTTP_200_OK)
 
