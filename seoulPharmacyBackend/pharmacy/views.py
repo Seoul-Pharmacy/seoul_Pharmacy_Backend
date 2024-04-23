@@ -27,8 +27,8 @@ def pharmacy_list(request) -> Response:
     page = request.GET.get("page")
     gu = request.GET.get("gu", default=None)
     language = request.GET.get("language", default=None)
-    enter_time = request.GET.get("enterTime")
-    exit_time = request.GET.get("exitTime")
+    enter_time = int(request.GET.get("enterTime"))
+    exit_time = int(request.GET.get("exitTime"))
     year = int(request.GET.get("year", default=now.year))
     month = int(request.GET.get("month", default=now.month))
     day = int(request.GET.get("day", default=now.day))
@@ -81,7 +81,7 @@ def get_day_of_week(year, month, day) -> str:
 
 
 # 특정 요일 운영시간에 해당하는 약국만 필터링
-def filter_by_dayofweek_and_time(queryset, day_of_week, enter_time, exit_time) -> QuerySet:
+def filter_by_dayofweek_and_time(queryset: QuerySet, day_of_week: str, enter_time: int, exit_time: int) -> QuerySet:
     if day_of_week == "mon":
         return queryset.filter(mon_open_time__lte=enter_time, mon_close_time__gte=exit_time)
     elif day_of_week == "tue":
@@ -114,7 +114,7 @@ def nearby_pharmacy_list(request):
     longitude = request.GET.get("longitude")
 
     now = datetime.now()
-    now_time = now.time()
+    now_time = convert_hour_and_minute_to_int(now.hour, now.minute)
     day_of_week = get_day_of_week(now.year, now.month, now.day)
 
     pharmacies = Pharmacy.objects.all()
@@ -137,6 +137,9 @@ def nearby_pharmacy_list(request):
     return paginator.get_paginated_response(pages)
 
 
+# 시간과 분을 2300등의 형식으로 바꿔주기
+def convert_hour_and_minute_to_int(hour, minute):
+    return hour * 100 + minute
 
 
 # 약국 운영시간 저장하기

@@ -71,22 +71,22 @@ def pharmacy_save(data: dict):
             main_number=data['DUTYTEL1'],
             latitude=data['WGS84LAT'],
             longitude=data['WGS84LON'],
-            mon_open_time=convert_to_time(data['DUTYTIME1S']),
-            tue_open_time=convert_to_time(data['DUTYTIME2S']),
-            wed_open_time=convert_to_time(data['DUTYTIME3S']),
-            thu_open_time=convert_to_time(data['DUTYTIME4S']),
-            fri_open_time=convert_to_time(data['DUTYTIME5S']),
-            sat_open_time=convert_to_time(data['DUTYTIME6S']),
-            sun_open_time=convert_to_time(data['DUTYTIME7S']),
-            holiday_open_time=convert_to_time(data['DUTYTIME8S']),
-            mon_close_time=convert_to_time(data['DUTYTIME1C']),
-            tue_close_time=convert_to_time(data['DUTYTIME2C']),
-            wed_close_time=convert_to_time(data['DUTYTIME3C']),
-            thu_close_time=convert_to_time(data['DUTYTIME4C']),
-            fri_close_time=convert_to_time(data['DUTYTIME5C']),
-            sat_close_time=convert_to_time(data['DUTYTIME6C']),
-            sun_close_time=convert_to_time(data['DUTYTIME7C']),
-            holiday_close_time=convert_to_time(data['DUTYTIME8C']),
+            mon_open_time=convert_to_open_time(data['DUTYTIME1S']),
+            tue_open_time=convert_to_open_time(data['DUTYTIME2S']),
+            wed_open_time=convert_to_open_time(data['DUTYTIME3S']),
+            thu_open_time=convert_to_open_time(data['DUTYTIME4S']),
+            fri_open_time=convert_to_open_time(data['DUTYTIME5S']),
+            sat_open_time=convert_to_open_time(data['DUTYTIME6S']),
+            sun_open_time=convert_to_open_time(data['DUTYTIME7S']),
+            holiday_open_time=convert_to_open_time(data['DUTYTIME8S']),
+            mon_close_time=convert_to_close_time(data['DUTYTIME1C']),
+            tue_close_time=convert_to_close_time(data['DUTYTIME2C']),
+            wed_close_time=convert_to_close_time(data['DUTYTIME3C']),
+            thu_close_time=convert_to_close_time(data['DUTYTIME4C']),
+            fri_close_time=convert_to_close_time(data['DUTYTIME5C']),
+            sat_close_time=convert_to_close_time(data['DUTYTIME6C']),
+            sun_close_time=convert_to_close_time(data['DUTYTIME7C']),
+            holiday_close_time=convert_to_close_time(data['DUTYTIME8C']),
             last_modified=datetime.strptime(data['WORK_DTTM'], "%Y-%m-%d %H:%M:%S.%f")
         )
         pharmacy.save()
@@ -101,27 +101,32 @@ def pharmacy_save(data: dict):
         logger.error("{0}({1})'s error : {2}".format(data['DUTYNAME'], gu, e))
 
 
-def convert_to_time(time_str: str):
+def convert_to_open_time(time_data: str):
     try:
-        if time_str == "":
+        if time_data == "":
             return None
 
-        if len(time_str) < 4:
-            time_str = time_str.zfill(4)
+        return int(time_data)
 
-        hour = int(time_str[0:2])
-        minute = int(time_str[2:4])
-
-        if hour >= 24:
-            hour = hour - 24
-
-        return time(hour=hour, minute=minute)
-    except ValueError as e:
-        raise ValueError(time_str)
-    except TypeError as e:
-        raise TypeError(time_str)
     except Exception as e:
-        raise Exception(time_str)
+        raise Exception(time_data)
+
+
+def convert_to_close_time(time_data: str):
+    try:
+        if time_data == "":
+            return None
+
+        time_data = int(time_data)
+
+        # 닫는 시간이 오전 6시 이전이면 + 24시를 해준다.
+        if time_data < 600:
+            time_data += 2400
+
+        return int(time_data)
+
+    except Exception as e:
+        raise Exception(time_data)
 
 
 def check_err(data: dict):

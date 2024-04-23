@@ -1,3 +1,4 @@
+from django.core.validators import MinValueValidator, MaxValueValidator
 from django.db import models
 
 
@@ -22,23 +23,23 @@ class Pharmacy(models.Model):
     speaking_japanese = models.BooleanField(null=False, default=False)
     speaking_chinese = models.BooleanField(null=False, default=False)
 
-    mon_open_time = models.TimeField(null=True)
-    tue_open_time = models.TimeField(null=True)
-    wed_open_time = models.TimeField(null=True)
-    thu_open_time = models.TimeField(null=True)
-    fri_open_time = models.TimeField(null=True)
-    sat_open_time = models.TimeField(null=True)
-    sun_open_time = models.TimeField(null=True)
-    holiday_open_time = models.TimeField(null=True)
+    mon_open_time = models.IntegerField(null=True, validators=[MinValueValidator(0), MaxValueValidator(3000)])
+    tue_open_time = models.IntegerField(null=True, validators=[MinValueValidator(0), MaxValueValidator(3000)])
+    wed_open_time = models.IntegerField(null=True, validators=[MinValueValidator(0), MaxValueValidator(3000)])
+    thu_open_time = models.IntegerField(null=True, validators=[MinValueValidator(0), MaxValueValidator(3000)])
+    fri_open_time = models.IntegerField(null=True, validators=[MinValueValidator(0), MaxValueValidator(3000)])
+    sat_open_time = models.IntegerField(null=True, validators=[MinValueValidator(0), MaxValueValidator(3000)])
+    sun_open_time = models.IntegerField(null=True, validators=[MinValueValidator(0), MaxValueValidator(3000)])
+    holiday_open_time = models.IntegerField(null=True, validators=[MinValueValidator(0), MaxValueValidator(3000)])
 
-    mon_close_time = models.TimeField(null=True)
-    tue_close_time = models.TimeField(null=True)
-    wed_close_time = models.TimeField(null=True)
-    thu_close_time = models.TimeField(null=True)
-    fri_close_time = models.TimeField(null=True)
-    sat_close_time = models.TimeField(null=True)
-    sun_close_time = models.TimeField(null=True)
-    holiday_close_time = models.TimeField(null=True)
+    mon_close_time = models.IntegerField(null=True, validators=[MinValueValidator(0), MaxValueValidator(3000)])
+    tue_close_time = models.IntegerField(null=True, validators=[MinValueValidator(0), MaxValueValidator(3000)])
+    wed_close_time = models.IntegerField(null=True, validators=[MinValueValidator(0), MaxValueValidator(3000)])
+    thu_close_time = models.IntegerField(null=True, validators=[MinValueValidator(0), MaxValueValidator(3000)])
+    fri_close_time = models.IntegerField(null=True, validators=[MinValueValidator(0), MaxValueValidator(3000)])
+    sat_close_time = models.IntegerField(null=True, validators=[MinValueValidator(0), MaxValueValidator(3000)])
+    sun_close_time = models.IntegerField(null=True, validators=[MinValueValidator(0), MaxValueValidator(3000)])
+    holiday_close_time = models.IntegerField(null=True, validators=[MinValueValidator(0), MaxValueValidator(3000)])
 
     last_modified = models.DateField(auto_now=True)
 
