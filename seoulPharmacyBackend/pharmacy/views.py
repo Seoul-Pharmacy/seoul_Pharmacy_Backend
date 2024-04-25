@@ -11,6 +11,7 @@ from rest_framework.views import APIView
 
 from common.custom_paginations import CustomPageNumberPagination
 from common.exceptions import PharmacyNotFoundException
+from .holiday_api import is_holiday
 from .machine_learning import filter_by_location
 from .models import Pharmacy
 from .pharmacy_hours_api import update_pharmacy_hours_list
@@ -33,16 +34,15 @@ def pharmacy_list(request) -> Response:
     month = int(request.GET.get("month", default=now.month))
     day = int(request.GET.get("day", default=now.day))
 
-    day_of_week = get_day_of_week(year, month, day)
-
     logger.info(
-        "pharmacy list request's page : {0}, gu : {1}, language : {2}, open_time : {3}, close_time : {4}, day_of_week : {5}".format(
-            page, gu, language, enter_time, exit_time, day_of_week))
+        "pharmacy list request : (page : {0}, gu : {1}, language : {2}, enter_time : {3}, exit_time : {4}, "
+        "date : {5}.{6}.{7})".format(
+            page, gu, language, enter_time, exit_time, year, month, day))
 
     pharmacies = Pharmacy.objects.all().order_by('id')
     pharmacies = filter_by_gu(pharmacies, gu)
     pharmacies = filter_by_language(pharmacies, language)
-    pharmacies = filter_by_dayofweek_and_time(pharmacies, day_of_week, enter_time, exit_time)
+    pharmacies = filter_by_date_and_time(pharmacies, year, month, day, enter_time, exit_time)
 
     if not pharmacies:
         raise PharmacyNotFoundException
@@ -80,6 +80,15 @@ def get_day_of_week(year, month, day) -> str:
     return days[day_of_week]
 
 
+# 날짜를 받아서, 그 날짜 운영시간에 해당하는 약국 필터링(요일, 공휴일)
+def filter_by_date_and_time(queryset: QuerySet, year: int, month: int, day: int, enter_time: int, exit_time: int):
+    if is_holiday(year, month, day):
+        return queryset.filter(holiday_open_time__lte=enter_time, holiday_close_time__gte=exit_time)
+
+    day_of_week = get_day_of_week(year, month, day)
+    return filter_by_dayofweek_and_time(queryset, day_of_week, enter_time, exit_time)
+
+
 # 특정 요일 운영시간에 해당하는 약국만 필터링
 def filter_by_dayofweek_and_time(queryset: QuerySet, day_of_week: str, enter_time: int, exit_time: int) -> QuerySet:
     if day_of_week == "mon":
@@ -114,13 +123,15 @@ def nearby_pharmacy_list(request):
     longitude = request.GET.get("longitude")
 
     now = datetime.now()
+    year = now.year
+    month = now.month
+    day = now.day
     now_time = convert_hour_and_minute_to_int(now.hour, now.minute)
-    day_of_week = get_day_of_week(now.year, now.month, now.day)
 
     pharmacies = Pharmacy.objects.all()
     pharmacies = filter_by_gu(pharmacies, gu)
     pharmacies = filter_by_language(pharmacies, language)
-    pharmacies = filter_by_dayofweek_and_time(pharmacies, day_of_week, now_time, now_time)
+    pharmacies = pharmacies = filter_by_date_and_time(pharmacies, year, month, day, now_time, now_time)
 
     if not pharmacies:
         raise PharmacyNotFoundException
@@ -148,6 +159,7 @@ def pharmacies_hours_update(request) -> Response:
     update_pharmacy_hours_list()
 
     return Response(status=status.HTTP_200_OK)
+
 
 # 약국 외국어 정보 저장하기
 @api_view(['PATCH'])
@@ -180,5 +192,3 @@ class PharmacyDetails(APIView):
 
         pharmacy.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
-
-
