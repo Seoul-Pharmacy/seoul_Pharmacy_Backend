@@ -175,9 +175,9 @@ LOGGING = {
         'file': {
             'level': 'INFO',
             'class': 'logging.handlers.RotatingFileHandler',
-            'filename': os.path.join(BASE_DIR.parent, "logs/admin_"+datetime.datetime.now().strftime('%Y-%m-%d')+".log"),
+            'filename': os.path.join(BASE_DIR.parent, "logs/"+datetime.datetime.now().strftime('%Y-%m-%d')+".log"),
             'encoding': 'UTF-8',  # 인코딩 깨지지 말라고
-            'maxBytes': 1024 * 1024 * 5,  # 5 MB  /
+            'maxBytes': 1024 * 1024 * 100,  # 100 MB
             'backupCount': 7,    # 백업은 7일까지
             'formatter': 'formatTime',
         },
