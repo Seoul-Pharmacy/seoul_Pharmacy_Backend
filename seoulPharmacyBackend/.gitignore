@@ -176,3 +176,9 @@ cython_debug/
 
 # my_setting.py
 common/my_settings.py
+
+# log
+../logs/
+
+# dbmigration
+seoulPharmacyBackend/pharmacy/migrations/0001_initial.py
