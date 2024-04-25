@@ -1,10 +1,16 @@
+import logging
+
 import numpy as np
 from sklearn.neighbors import KNeighborsRegressor
 from haversine import haversine
 
+logger = logging.getLogger('django')
+
 
 # datas, 유저의 위도&경도-> datas 내에서 사용자와 가까운 약국이 있는 5개의 딕셔너리와 해당 딕셔너리에 약국과의 거리를 추가하여 return.
 def filter_by_location(datas, user_latitude, user_longitude):
+    logger.info("machine_learning.filter_by_location()")
+
     filtered_longitude = []
     filtered_latitude = []
     datas_results = []

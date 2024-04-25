@@ -19,13 +19,12 @@ PHARMACY_HOURS_DATA_UNIT = 1000
 
 # 약국 운영시간 데이터 개수 가져오기
 def get_pharmacy_hours_total_count() -> int:
+    logger.info("phamacy_hours_api.get_pharmacy_hours_total_count()")
     data = requests.get(SIMPLE_PHARMACY_HOURS_API_URL % SECRET_KEY).json()
 
-    check_err(data)
+    check_statuscode(data['TbPharmacyOperateInfo']['RESULT']['CODE'])
 
     total_count = data['TbPharmacyOperateInfo']['list_total_count']
-
-    logger.info("number of api request data: {}".format(total_count))
 
     return total_count
 
@@ -33,6 +32,7 @@ def get_pharmacy_hours_total_count() -> int:
 # 모든 약국 운영시간 데이터 가져와서 저장
 def update_pharmacy_hours_list():
     pharmacy_hours_end_index = get_pharmacy_hours_total_count()
+    logger.debug("pharmacy_hours_api.update_pharmacy_hours_list() : data 개수 : {0}".format(pharmacy_hours_end_index))
 
     Pharmacy.objects.all().delete()
 
@@ -48,9 +48,10 @@ def update_pharmacy_hours_list():
 
 # 부분 약국 운영시간 데이터 가져오기
 def get_pharmacy_hours_list(start_index: int, end_index: int) -> dict:
+    logger.info("pharmacy_hours_api.get_pharmacy_hours_list()")
     data = requests.get(PHARMACY_HOURS_API_URL % (SECRET_KEY, start_index, end_index)).json()
 
-    check_err(data)
+    check_statuscode(data)
 
     return data['TbPharmacyOperateInfo']['row']
 
@@ -61,6 +62,8 @@ def pharmacy_save(data: dict):
     si = address[0]
     gu = address[1]
     road_name_address = address[2]
+
+    logger.info("pharmacy_hours_api.pharmacy_save() : (address : {0})".format(data["DUTYADDR"]))
 
     try:
         pharmacy = Pharmacy(
@@ -91,14 +94,10 @@ def pharmacy_save(data: dict):
         )
         pharmacy.save()
 
-    except ValueError as e:
-        logger.error("{0}({1})'s error: {2}".format(data['DUTYNAME'], gu, e))
-    except TypeError as e:
-        logger.error("{0}({1})'s error : {2}".format(data['DUTYNAME'], gu, e))
     except IntegrityError as e:
-        logger.error("{0}({1})'s error : {2}".format(data['DUTYNAME'], gu, e))
+        logger.error("pharmacy_hours_api.pharmacy_save() : {0}({1}) {2}".format(data['DUTYNAME'], gu, e))
     except Exception as e:
-        logger.error("{0}({1})'s error : {2}".format(data['DUTYNAME'], gu, e))
+        logger.error("pharmacy_hours_api.pharmacy_save() : {0}({1}) {2}".format(data['DUTYNAME'], gu, e))
 
 
 def convert_to_open_time(time_data: str):
@@ -129,17 +128,14 @@ def convert_to_close_time(time_data: str):
         raise Exception(time_data)
 
 
-def check_err(data: dict):
-    code = data['TbPharmacyOperateInfo']['RESULT']['CODE']
-
-    logger.info("api status code : {0}".format(code))
-    if code == "INFO-000":
+def check_statuscode(statuscode: str):
+    if statuscode == "INFO-000":
         return
-    elif code == "INFO-100":
+    elif statuscode == "INFO-100":
         raise ApiKeyForbidden
-    elif code == "INFO-200":
+    elif statuscode == "INFO-200":
         raise ApiNotFound
-    elif code == "ERROR-300":
+    elif statuscode == "ERROR-300":
         raise ApiBadRequest
     else:
         raise ApiInternalServerError

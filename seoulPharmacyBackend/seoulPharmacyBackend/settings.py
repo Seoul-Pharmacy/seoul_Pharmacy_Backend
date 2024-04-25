@@ -9,6 +9,7 @@ https://docs.djangoproject.com/en/5.0/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.0/ref/settings/
 """
+import datetime
 import os
 from pathlib import Path
 
@@ -47,7 +48,7 @@ MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
-    # 'django.middleware.csrf.CsrfViewMiddleware',
+    'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
@@ -120,7 +121,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # CORS
 CORS_ORIGIN_WHITELIST = ['http://127.0.0.1:3000',
                          'http://localhost:3000',
-                         'https://pharmaseoul.com'
+                         'https://pharmaseoul.com',
                          'https://www.pharmaseoul.com'
                          ]
 CORS_ALLOW_CREDENTIALS = True
@@ -165,42 +166,34 @@ LOGGING = {
             '()': 'django.utils.log.RequireDebugTrue',
         },
     },
+    # 로그텍스트 형식정의
     'formatters': {
-        'django.server': {
-            '()': 'django.utils.log.ServerFormatter',
-            'format': '[{server_time}] {message}',
-            'style': '{',
-        },
-    },
-    'standard': {
-        'format': '%(asctime)s [%(levelname)s] %(name)s: %(message)s'
+        'formatNormal': {'format': '%(levelname)s %(message)s [%(name)s:%(lineno)s]'},
+        'formatTime': {'format': '[%(asctime)s] %(levelname)s %(message)s', 'datefmt': "%Y-%m-%d %H:%M:%S"},
     },
     'handlers': {
+        'file': {
+            'level': 'INFO',
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': os.path.join(BASE_DIR.parent, "logs/admin_"+datetime.datetime.now().strftime('%Y-%m-%d')+".log"),
+            'encoding': 'UTF-8',  # 인코딩 깨지지 말라고
+            'maxBytes': 1024 * 1024 * 5,  # 5 MB  /
+            'backupCount': 7,    # 백업은 7일까지
+            'formatter': 'formatTime',
+        },
         'console': {
-            'level': 'INFO',
-            'filters': ['require_debug_true'],
+            'level': 'DEBUG',
             'class': 'logging.StreamHandler',
-        },
-        'django.server': {
-            'level': 'INFO',
-            'class': 'logging.StreamHandler',
-            'formatter': 'django.server',
-        },
-        'mail_admins': {
-            'level': 'ERROR',
-            'filters': ['require_debug_false'],
-            'class': 'django.utils.log.AdminEmailHandler'
+            'formatter': 'formatTime',
         },
     },
     'loggers': {
         'django': {
-            'handlers': ['console', 'mail_admins'],
-            'level': 'INFO',
-        },
-        'django.server': {
-            'handlers': ['django.server'],
-            'level': 'INFO',
+            'handlers': ['file', 'console'],
             'propagate': False,
+            'level': 'INFO',
         },
-    }
+
+
+    },
 }

@@ -12,6 +12,8 @@ logger = logging.getLogger('django')
 
 
 def is_holiday(year, month, day) -> bool:
+    logger.info("holiday_api.is_holiday()")
+
     date = int("{0}{1:02d}{2:02d}".format(year, month, day))
 
     params = {'serviceKey': SECRET_KEY, 'numOfRows': '100', '_type': 'json', 'solYear': year}
@@ -19,13 +21,9 @@ def is_holiday(year, month, day) -> bool:
     response = requests.get(HOLIDAY_API_URL, params=params)
     result = json.loads(response.text)
 
-    logger.info("holiday api result : {0}".format(result))
-
     for i in range(len(result['response']['body']['items']['item'])):
         holiday = result['response']['body']['items']['item'][i]['locdate']
         if holiday == date:
-            logger.info("is holiday : {0}".format(True))
             return True
 
-    logger.info("is holiday : {0}".format(False))
     return False

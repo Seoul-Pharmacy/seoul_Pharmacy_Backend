@@ -54,7 +54,10 @@ WHERE {
 } OFFSET %d LIMIT %d 
 """
 
-GU_LIST = ["Gangdonggu", "Songpagu", "Gangnamgu", "Seochogu", "Gwanakgu", "Dongjakgu", "Yeongdeungpogu", "Geumcheongu", "Gurogu", "Gangseogu", "Yangcheongu", "Mapogu", "Seodaemungu", "Eunpyeonggu", "Nowongu", "Dobonggu", "Gangbukgu", "Seongbukgu", "Jungranggu", "Dongdaemungu", "Gwangjingu", "Seongdonggu", "Yongsangu", "Junggu", "Jongrogu"]
+GU_LIST = ["Gangdonggu", "Songpagu", "Gangnamgu", "Seochogu", "Gwanakgu", "Dongjakgu", "Yeongdeungpogu", "Geumcheongu",
+           "Gurogu", "Gangseogu", "Yangcheongu", "Mapogu", "Seodaemungu", "Eunpyeonggu", "Nowongu", "Dobonggu",
+           "Gangbukgu", "Seongbukgu", "Jungranggu", "Dongdaemungu", "Gwangjingu", "Seongdonggu", "Yongsangu", "Junggu",
+           "Jongrogu"]
 
 PHARMACY_LANGUAGE_START_INDEX = 0
 PHARMACY_LANGUAGE_DATA_UNIT = 100
@@ -62,6 +65,8 @@ PHARMACY_LANGUAGE_DATA_UNIT = 100
 
 # API에 요청하여 데이터 개수를 가져오는 함수
 def get_sparql_data(url, state) -> dict:
+    logging.info("pharmacy_languages_api.get_sparql_data()")
+
     sparql = SPARQLWrapper(url)
     sparql.setQuery(state)
     sparql.setReturnFormat(XML)
@@ -72,6 +77,7 @@ def get_sparql_data(url, state) -> dict:
 
 # 응답에서 count정보만 가져오는 함수
 def extract_total_count(data: dict) -> int:
+    logging.info("pharmacy_languages_api.extract_total_count()")
     return int(data['sparql']['results']['result']['binding']['literal']['#text'])
 
 
@@ -83,28 +89,30 @@ def update_pharmacy_languages_about_all_gu():
 
 # API에 요청하여 응답을 기존 데이터에 저장하는 함수
 def update_pharmacy_languages(gu):
-    pharmacy_hours_end_index = extract_total_count(get_sparql_data(PHARMACY_LANGUAGE_API_URL, COUNT_STATE % (gu,gu)))
+    logger.info("pharmacy_languages_api.update_pharmacy_languages()")
+    pharmacy_hours_end_index = extract_total_count(get_sparql_data(PHARMACY_LANGUAGE_API_URL, COUNT_STATE % (gu, gu)))
 
-    logger.info("pharmacy_languages api {0}의 총 데이터 개수 : {1}".format(gu, pharmacy_hours_end_index))
+    logger.debug("pharmacy_languages_api.extract_total_count() : {0}의 총 데이터 개수 {1}".format(gu, pharmacy_hours_end_index))
 
     for i in range(PHARMACY_LANGUAGE_START_INDEX, pharmacy_hours_end_index, PHARMACY_LANGUAGE_DATA_UNIT):
         offset = i
         limit = min(PHARMACY_LANGUAGE_DATA_UNIT, pharmacy_hours_end_index - i)
 
-        pharmacy_languages_list = extract_pharmacy_languages(
-            get_sparql_data(PHARMACY_LANGUAGE_API_URL, STATE % (gu, gu, offset, limit)))
+        try:
+            pharmacy_languages_list = extract_pharmacy_languages(
+                get_sparql_data(PHARMACY_LANGUAGE_API_URL, STATE % (gu, gu, offset, limit)))
 
-        for pharmacy_languages in pharmacy_languages_list:
-            update_pharmacy_language(pharmacy_languages)
+            for pharmacy_languages in pharmacy_languages_list:
+                update_pharmacy_language(pharmacy_languages)
+        except Exception as e:
+            logger.warning("pharmacy_languages_api.update_pharmacy_languages() : {}".format(e))
 
 
 # API 응답에서 URI와 전화번호를 추출하는 함수
 def extract_pharmacy_languages(data: dict) -> list:
-
-    # logger.info("api로 부터 온 데이터 : {}".format(data))
+    logger.info("pharmacy_languages.extract_pharmacy_languages()")
 
     result = []
-
     for entry in data['sparql']['results']['result']:
         entry_dict = {}
         for item in entry['binding']:
@@ -133,8 +141,9 @@ def update_pharmacy_language(pharmacy_languages):
     language = pharmacy_languages["language"]
     address = pharmacy_languages["gu"]
 
-    # logger.info("update date : ({}, {}, {})".format(road_name_address, name, language))
-
+    logger.info("pharmacy_languages_api.update_pharmacy_language() : ({0},{1},{2})".format(name,
+                                                                                           address,
+                                                                                           language))
     try:
         pharmacy = Pharmacy.objects.get(gu__contains=address, name=name)
 
@@ -147,8 +156,18 @@ def update_pharmacy_language(pharmacy_languages):
 
         pharmacy.save()
     except Pharmacy.DoesNotExist:
-        logger.error("{0}({1})에 대한 데이터가 없습니다.".format(name, address))
+        logger.error(
+            "pharmacy_languages_api.update_pharmacy_language() : ({0},{1},{2})에 대한 데이터가 없습니다.".format(name, address,
+                                                                                                      language))
     except MultipleObjectsReturned as e:
-        logger.error("{0}({1})에 대한 데이터가 여러개 있습니다. : {2}".format(name, address, e))
+        logger.error(
+            "pharmacy_languages_api.update_pharmacy_language() : ({0},{1},{2})에 대한 데이터가 여러 개 있습니다. {3}".format(name,
+                                                                                                               address,
+                                                                                                               language,
+                                                                                                               e))
     except Exception as e:
-        logger.error("{0}({1})'s Error : {2}".format(name, address, e))
+        logger.error(
+            "pharmacy_languages_api.update_pharmacy_language() : ({0},{1},{2})을 저장하면서 에러가 발생하였습니다. {3}".format(name,
+                                                                                                               address,
+                                                                                                               language,
+                                                                                                               e))

@@ -35,7 +35,7 @@ def pharmacy_list(request) -> Response:
     day = int(request.GET.get("day", default=now.day))
 
     logger.info(
-        "pharmacy list request : (page : {0}, gu : {1}, language : {2}, enter_time : {3}, exit_time : {4}, "
+        "views.pharmacy_list() : request(page : {0}, gu : {1}, language : {2}, enter_time : {3}, exit_time : {4}, "
         "date : {5}.{6}.{7})".format(
             page, gu, language, enter_time, exit_time, year, month, day))
 
@@ -57,7 +57,7 @@ def pharmacy_list(request) -> Response:
 # 구에 해당하는 약국만 필터링, None이면 그대로
 def filter_by_gu(queryset, gu) -> QuerySet:
     if gu is not None:
-        return queryset.filter(gu=gu)
+        queryset = queryset.filter(gu=gu)
     return queryset
 
 
@@ -128,10 +128,12 @@ def nearby_pharmacy_list(request):
     day = now.day
     now_time = convert_hour_and_minute_to_int(now.hour, now.minute)
 
+    logger.info("views.nearby_pharmacy_list() : request(gu : %s, language : %s, latitude : %s, longitude : %s" % (gu, language, latitude, longitude))
+
     pharmacies = Pharmacy.objects.all()
     pharmacies = filter_by_gu(pharmacies, gu)
     pharmacies = filter_by_language(pharmacies, language)
-    pharmacies = pharmacies = filter_by_date_and_time(pharmacies, year, month, day, now_time, now_time)
+    pharmacies = filter_by_date_and_time(pharmacies, year, month, day, now_time, now_time)
 
     if not pharmacies:
         raise PharmacyNotFoundException
@@ -139,8 +141,6 @@ def nearby_pharmacy_list(request):
     datas = SimpleNearbyPharmacySerializer(pharmacies, many=True).data
 
     datas = filter_by_location(datas, float(latitude), float(longitude))
-
-    logger.info("nearby_pharmacy_list : {0}".format(datas))
 
     paginator = CustomPageNumberPagination()
     pages = paginator.paginate_queryset(datas, request)
@@ -156,6 +156,8 @@ def convert_hour_and_minute_to_int(hour, minute):
 # 약국 운영시간 저장하기
 @api_view(['PUT'])
 def pharmacies_hours_update(request) -> Response:
+    logger.info("views.pharmacies_hours_update()")
+
     update_pharmacy_hours_list()
 
     return Response(status=status.HTTP_200_OK)
@@ -164,6 +166,8 @@ def pharmacies_hours_update(request) -> Response:
 # 약국 외국어 정보 저장하기
 @api_view(['PATCH'])
 def pharmacies_languages_update(request):
+    logger.info("views.pharmacies_languages_update()")
+
     update_pharmacy_languages_about_all_gu()
 
     return Response(status=status.HTTP_200_OK)
@@ -172,12 +176,16 @@ def pharmacies_languages_update(request):
 class PharmacyDetails(APIView):
 
     def get(self, request, id) -> JsonResponse:
+        logger.info("views.PharmacyDetails.get()")
+
         pharmacy = get_object_or_404(Pharmacy, id=id)
 
         serializer = PharmacySerializer(pharmacy)
         return JsonResponse(serializer.data)
 
     def put(self, request, id) -> JsonResponse:
+        logger.info("views.PharmacyDetails.put()")
+
         query = get_object_or_404(Pharmacy, id=id)
 
         pharmacy = PharmacySerializer(query, data=request.data)
@@ -188,6 +196,8 @@ class PharmacyDetails(APIView):
         return JsonResponse(pharmacy.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def delete(self, request, id) -> Response:
+        logger.info("views.PharmacyDetails.delete()")
+
         pharmacy = get_object_or_404(Pharmacy, id=id)
 
         pharmacy.delete()
