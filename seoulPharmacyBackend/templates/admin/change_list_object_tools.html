@@ -1,0 +1,103 @@
+{% load i18n admin_urls %}
+
+{% block object-tools-items %}
+    {% if has_add_permission %}
+        <style>
+            .loader {
+                display: none;
+                border: 16px solid #f3f3f3; /* Light grey - border 전체 색상 지정*/
+                border-top: 16px solid #3498db; /* Blue - 로딩 영역 색상 지정 */
+                border-radius: 50%; /* 둥근 모서리 효과 */
+                width: 120px; /* 크기 지정 */
+                height: 120px;
+                animation: spin 2s linear infinite;
+                /* 키프레임 애니메이션값 2초 가속도없이 일정하게 연속적인 로딩 */
+
+                position: fixed;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                z-index: 20;
+            }
+
+            @keyframes spin {
+                0% {
+                    transform: rotate(0deg);
+                }
+                100% {
+                    transform: rotate(360deg);
+                }
+            }
+        </style>
+        <script type="text/javascript">
+            //csrf token
+            function getCookie(name) {
+                var cookieValue = null;
+                if (document.cookie && document.cookie !== '') {
+                    var cookies = document.cookie.split(';');
+                    for (var i = 0; i < cookies.length; i++) {
+                        var cookie = cookies[i].trim();
+                        // Does this cookie string begin with the name we want?
+                        if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                            cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                            break;
+                        }
+                    }
+                }
+                return cookieValue;
+            }
+
+            var csrftoken = getCookie('csrftoken');
+
+            function requestAPI(url) {
+                $.ajax({
+                    type: 'post',
+                    url: url,
+                    dataType: 'text',
+                    headers: {
+                        'X-CSRFToken': csrftoken // 여기에 생성한 토큰을 넣어주면 된다
+                    },
+                    beforeSend: function () {
+                        $('.loader').css('display', 'block')
+                    },
+                    success: function () {
+                        $('.loader').css('display', 'none')
+                        alert("업데이트가 완료되었습니다.")
+                    },
+                    error: function (request, status, error) {
+                        $('.loader').css('display', 'none')
+                        if (request.status === 400) {
+                            alert("잘못된 요청입니다.");
+                        } else if (request.status === 403) {
+                            alert("권한이 없습니다.");
+                        } else if (request.status === 500) {
+                            alert("잘못된 요청입니다.");
+                        } else {
+                            alert(request.status + " 예외입니다.");
+                        }
+                    },
+                });
+            }
+        </script>
+        <div class="loader"></div>
+        <li>
+            {% url cl.opts|admin_urlname:'add' as add_url %}
+            <a href="{% add_preserved_filters add_url is_popup to_field %}" class="addlink">
+                {% blocktranslate with cl.opts.verbose_name as name %}add {{ name }}{% endblocktranslate %}
+            </a>
+
+
+            {% if buttons %}
+                {% for btn in buttons %}
+                    <a href="javascript:void(0);" class="addlink" onclick="requestAPI('{{ btn.url }}')">
+                        {{ btn.name }}
+                    </a>
+                {% endfor %}
+            {% endif %}
+        </li>
+
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"
+                integrity="sha512-894YE6QWD5I59HgZOGReFYm4dnWc1Qt5NtvYSaNcOP+u1T9qYdvdihz0PPSiiqn/+/3e7Jo4EaG7TubfWGUrMQ=="
+                crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    {% endif %}
+{% endblock %}
