@@ -141,7 +141,7 @@ def update_pharmacy_language(pharmacy_languages):
     language = pharmacy_languages["language"]
     address = pharmacy_languages["gu"]
 
-    logger.info("pharmacy_languages_api.update_pharmacy_language() : ({0},{1},{2})".format(name,
+    logger.debug("pharmacy_languages_api.update_pharmacy_language() : ({0},{1},{2})".format(name,
                                                                                            address,
                                                                                            language))
     try:

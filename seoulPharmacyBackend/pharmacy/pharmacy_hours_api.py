@@ -19,20 +19,21 @@ PHARMACY_HOURS_DATA_UNIT = 1000
 
 # 약국 운영시간 데이터 개수 가져오기
 def get_pharmacy_hours_total_count() -> int:
-    logger.info("phamacy_hours_api.get_pharmacy_hours_total_count()")
+    logger.info("pharmacy_hours_api.get_pharmacy_hours_total_count()")
     data = requests.get(SIMPLE_PHARMACY_HOURS_API_URL % SECRET_KEY).json()
 
     check_statuscode(data['TbPharmacyOperateInfo']['RESULT']['CODE'])
 
     total_count = data['TbPharmacyOperateInfo']['list_total_count']
 
+    logger.debug("pharmacy_hours_api.get_pharmacy_hours_total_count() : 총 데이터 개수는 {}".format(total_count))
     return total_count
 
 
 # 모든 약국 운영시간 데이터 가져와서 저장
 def update_pharmacy_hours_list():
+    logger.info("pharmacy_hours_api.update_pharmacy_hours()")
     pharmacy_hours_end_index = get_pharmacy_hours_total_count()
-    logger.debug("pharmacy_hours_api.update_pharmacy_hours_list() : data 개수 : {0}".format(pharmacy_hours_end_index))
 
     Pharmacy.objects.all().delete()
 
@@ -129,6 +130,8 @@ def convert_to_close_time(time_data: str):
 
 
 def check_statuscode(statuscode: str):
+    logger.info("pharmacy_hours_api.check_statuscode : 상태코드는 {}".format(statuscode))
+
     if statuscode == "INFO-000":
         return
     elif statuscode == "INFO-100":
