@@ -2,7 +2,7 @@ import logging
 from datetime import datetime
 
 import requests
-from django.db import IntegrityError
+from django.db import transaction
 
 from common import my_settings
 from common.exceptions import ApiNotFound, ApiInternalServerError, ApiKeyForbidden, ApiBadRequest
@@ -31,6 +31,7 @@ def get_pharmacy_hours_total_count() -> int:
 
 
 # 모든 약국 운영시간 데이터 가져와서 저장
+@transaction.atomic()
 def update_pharmacy_hours_list():
     logger.info("pharmacy_hours_api.update_pharmacy_hours()")
     pharmacy_hours_end_index = get_pharmacy_hours_total_count()
@@ -52,7 +53,7 @@ def get_pharmacy_hours_list(start_index: int, end_index: int) -> dict:
     logger.info("pharmacy_hours_api.get_pharmacy_hours_list()")
     data = requests.get(PHARMACY_HOURS_API_URL % (SECRET_KEY, start_index, end_index)).json()
 
-    check_statuscode(data)
+    check_statuscode(data['TbPharmacyOperateInfo']['RESULT']['CODE'])
 
     return data['TbPharmacyOperateInfo']['row']
 
@@ -64,41 +65,34 @@ def pharmacy_save(data: dict):
     gu = address[1]
     road_name_address = address[2]
 
-    logger.info("pharmacy_hours_api.pharmacy_save() : (address : {0})".format(data["DUTYADDR"]))
+    logger.debug("pharmacy_hours_api.pharmacy_save() : (address : {0})".format(data["DUTYADDR"]))
 
-    try:
-        pharmacy = Pharmacy(
-            name=data['DUTYNAME'],
-            si=si,
-            gu=gu,
-            road_name_address=road_name_address,
-            main_number=data['DUTYTEL1'],
-            latitude=data['WGS84LAT'],
-            longitude=data['WGS84LON'],
-            mon_open_time=convert_to_open_time(data['DUTYTIME1S']),
-            tue_open_time=convert_to_open_time(data['DUTYTIME2S']),
-            wed_open_time=convert_to_open_time(data['DUTYTIME3S']),
-            thu_open_time=convert_to_open_time(data['DUTYTIME4S']),
-            fri_open_time=convert_to_open_time(data['DUTYTIME5S']),
-            sat_open_time=convert_to_open_time(data['DUTYTIME6S']),
-            sun_open_time=convert_to_open_time(data['DUTYTIME7S']),
-            holiday_open_time=convert_to_open_time(data['DUTYTIME8S']),
-            mon_close_time=convert_to_close_time(data['DUTYTIME1C']),
-            tue_close_time=convert_to_close_time(data['DUTYTIME2C']),
-            wed_close_time=convert_to_close_time(data['DUTYTIME3C']),
-            thu_close_time=convert_to_close_time(data['DUTYTIME4C']),
-            fri_close_time=convert_to_close_time(data['DUTYTIME5C']),
-            sat_close_time=convert_to_close_time(data['DUTYTIME6C']),
-            sun_close_time=convert_to_close_time(data['DUTYTIME7C']),
-            holiday_close_time=convert_to_close_time(data['DUTYTIME8C']),
-            last_modified=datetime.strptime(data['WORK_DTTM'], "%Y-%m-%d %H:%M:%S.%f")
-        )
-        pharmacy.save()
-
-    except IntegrityError as e:
-        logger.error("pharmacy_hours_api.pharmacy_save() : {0}({1}) {2}".format(data['DUTYNAME'], gu, e))
-    except Exception as e:
-        logger.error("pharmacy_hours_api.pharmacy_save() : {0}({1}) {2}".format(data['DUTYNAME'], gu, e))
+    pharmacy = Pharmacy.objects.update_or_create(name=data['DUTYNAME'], gu=gu, defaults={
+        'name': data['DUTYNAME'],
+        'si': si,
+        'gu': gu,
+        'road_name_address': road_name_address,
+        'main_number': data['DUTYTEL1'],
+        'latitude': data['WGS84LAT'],
+        'longitude': data['WGS84LON'],
+        'mon_open_time': convert_to_open_time(data['DUTYTIME1S']),
+        'tue_open_time': convert_to_open_time(data['DUTYTIME2S']),
+        'wed_open_time': convert_to_open_time(data['DUTYTIME3S']),
+        'thu_open_time': convert_to_open_time(data['DUTYTIME4S']),
+        'fri_open_time': convert_to_open_time(data['DUTYTIME5S']),
+        'sat_open_time': convert_to_open_time(data['DUTYTIME6S']),
+        'sun_open_time': convert_to_open_time(data['DUTYTIME7S']),
+        'holiday_open_time': convert_to_open_time(data['DUTYTIME8S']),
+        'mon_close_time': convert_to_close_time(data['DUTYTIME1C']),
+        'tue_close_time': convert_to_close_time(data['DUTYTIME2C']),
+        'wed_close_time': convert_to_close_time(data['DUTYTIME3C']),
+        'thu_close_time': convert_to_close_time(data['DUTYTIME4C']),
+        'fri_close_time': convert_to_close_time(data['DUTYTIME5C']),
+        'sat_close_time': convert_to_close_time(data['DUTYTIME6C']),
+        'sun_close_time': convert_to_close_time(data['DUTYTIME7C']),
+        'holiday_close_time': convert_to_close_time(data['DUTYTIME8C']),
+        'last_modified': datetime.strptime(data['WORK_DTTM'], "%Y-%m-%d %H:%M:%S.%f")
+    })
 
 
 def convert_to_open_time(time_data: str):
