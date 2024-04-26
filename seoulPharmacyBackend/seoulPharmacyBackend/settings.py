@@ -27,7 +27,7 @@ SECRET_KEY = my_settings.SECRET
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['127.0.0.1', 'localhost', 'pharmaseoul']
+ALLOWED_HOSTS = ['127.0.0.1', 'localhost', 'pharmaseoul', 'www.pharmaseoul.com', 'pharmaseoul.com']
 
 # Application definition
 
@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     'pharmacy',
     'rest_framework',
     'corsheaders',
+    'django_apscheduler',
 ]
 
 MIDDLEWARE = [
@@ -122,7 +123,9 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 CORS_ORIGIN_WHITELIST = ['http://127.0.0.1:3000',
                          'http://localhost:3000',
                          'https://pharmaseoul.com',
-                         'https://www.pharmaseoul.com'
+                         'https://www.pharmaseoul.com',
+                         'http://pharmaseoul.com',
+                         'http://www.pharmaseoul.com'
                          ]
 CORS_ALLOW_CREDENTIALS = True
 
@@ -175,10 +178,10 @@ LOGGING = {
         'file': {
             'level': 'INFO',
             'class': 'logging.handlers.RotatingFileHandler',
-            'filename': os.path.join(BASE_DIR.parent, "logs/"+datetime.datetime.now().strftime('%Y-%m-%d')+".log"),
+            'filename': os.path.join(BASE_DIR.parent, "logs/" + datetime.datetime.now().strftime('%Y-%m-%d') + ".log"),
             'encoding': 'UTF-8',  # 인코딩 깨지지 말라고
             'maxBytes': 1024 * 1024 * 100,  # 100 MB
-            'backupCount': 7,    # 백업은 7일까지
+            'backupCount': 7,  # 백업은 7일까지
             'formatter': 'formatTime',
         },
         'console': {
@@ -194,6 +197,8 @@ LOGGING = {
             'level': 'INFO',
         },
 
-
     },
 }
+
+APSCHEDULER_DATETIME_FORMAT = "N j, Y, f:s a"
+SCHEDULER_DEFAULT = True
