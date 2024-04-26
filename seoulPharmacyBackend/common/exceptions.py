@@ -25,3 +25,8 @@ class ApiNotFound(APIException):
 class ApiBadRequest(APIException):
     status_code = status.HTTP_400_BAD_REQUEST
     default_detail = 'API 서버가 요청을 이해할 수 없습니다.'
+
+
+class Fobbiden(APIException):
+    status_code = status.HTTP_403_FORBIDDEN
+    default_detail = '권한이 없습니다.'

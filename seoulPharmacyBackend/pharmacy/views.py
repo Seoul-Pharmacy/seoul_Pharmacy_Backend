@@ -10,7 +10,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from common.custom_paginations import CustomPageNumberPagination
-from common.exceptions import PharmacyNotFoundException
+from common.exceptions import PharmacyNotFoundException, Fobbiden
 from .holiday_api import is_holiday
 from .machine_learning import filter_by_location
 from .models import Pharmacy
@@ -154,9 +154,13 @@ def convert_hour_and_minute_to_int(hour, minute):
 
 
 # 약국 운영시간 저장하기
-@api_view(['PUT'])
+@api_view(['POST'])
 def pharmacies_hours_update(request) -> Response:
     logger.info("views.pharmacies_hours_update()")
+
+    # 권한 확인
+    if not request.user.is_superuser:
+        raise Fobbiden
 
     update_pharmacy_hours_list()
 
@@ -164,9 +168,13 @@ def pharmacies_hours_update(request) -> Response:
 
 
 # 약국 외국어 정보 저장하기
-@api_view(['PATCH'])
+@api_view(['POST'])
 def pharmacies_languages_update(request):
     logger.info("views.pharmacies_languages_update()")
+
+    # 권한 확인
+    if not request.user.is_superuser:
+        raise Fobbiden
 
     update_pharmacy_languages_about_all_gu()
 
@@ -186,6 +194,10 @@ class PharmacyDetails(APIView):
     def put(self, request, id) -> JsonResponse:
         logger.info("views.PharmacyDetails.put()")
 
+        # 권한 확인
+        if not request.user.is_superuser:
+            raise Fobbiden
+
         query = get_object_or_404(Pharmacy, id=id)
 
         pharmacy = PharmacySerializer(query, data=request.data)
@@ -197,6 +209,10 @@ class PharmacyDetails(APIView):
 
     def delete(self, request, id) -> Response:
         logger.info("views.PharmacyDetails.delete()")
+
+        # 권한 확인
+        if not request.user.is_superuser:
+            raise Fobbiden
 
         pharmacy = get_object_or_404(Pharmacy, id=id)
 
