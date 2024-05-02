@@ -30,8 +30,8 @@ def pharmacy_list(request) -> Response:
     speaking_english: bool = bool(request.GET.get("speakingEnglish", default=False))
     speaking_japanese: bool = bool(request.GET.get("speakingJapanese", default=False))
     speaking_chinese: bool = bool(request.GET.get("speakingChinese", default=False))
-    enter_time = int(request.GET.get("enterTime"))
-    exit_time = int(request.GET.get("exitTime"))
+    enter_time = convertTimeToDbTime(int(request.GET.get("enterTime")))
+    exit_time = convertTimeToDbTime(int(request.GET.get("exitTime")))
     year = int(request.GET.get("year", default=now.year))
     month = int(request.GET.get("month", default=now.month))
     day = int(request.GET.get("day", default=now.day))
@@ -54,6 +54,13 @@ def pharmacy_list(request) -> Response:
     datas = SimplePharmacySerializer(pages, many=True).data
 
     return paginator.get_paginated_response(datas)
+
+
+# int형식의 time을 db타임에 맞춰주기, 100 -> 2500
+def convertTimeToDbTime(time: int) -> int:
+    if time < 600:
+        time += 2400
+    return time
 
 
 # 구에 해당하는 약국만 필터링, None이면 그대로
@@ -131,15 +138,17 @@ def nearby_pharmacy_list(request):
     year = now.year
     month = now.month
     day = now.day
-    now_time = convert_hour_and_minute_to_int(now.hour, now.minute)
+    now_time = convertTimeToDbTime(convert_hour_and_minute_to_int(now.hour, now.minute))
 
     logger.info("views.nearby_pharmacy_list() : request(gu : %s, speaking_english : %s, speaking_japanese : %s,  "
-                "speaking_chinese : %s , latitude : %s, longitude : %s" % (gu, speaking_english, speaking_japanese,
-                                                                           speaking_chinese, latitude, longitude))
+                "speaking_chinese : %s , latitude : %s, longitude : %s, is_open : %s, year-month-day-time : %d-%d-%d-%d" % (
+                    gu, speaking_english, speaking_japanese,
+                    speaking_chinese, latitude, longitude, is_open, year, month, day, now_time))
 
     pharmacies = Pharmacy.objects.all()
     pharmacies = filter_by_gu(pharmacies, gu)
     pharmacies = filter_by_language(pharmacies, speaking_english, speaking_japanese, speaking_chinese)
+
     if is_open:
         pharmacies = filter_by_date_and_time(pharmacies, year, month, day, now_time, now_time)
 
@@ -149,7 +158,6 @@ def nearby_pharmacy_list(request):
     datas = SimpleNearbyPharmacySerializer(pharmacies, many=True).data
 
     datas = filter_by_location(datas, float(latitude), float(longitude))
-
     paginator = CustomPageNumberPagination()
     pages = paginator.paginate_queryset(datas, request)
 
