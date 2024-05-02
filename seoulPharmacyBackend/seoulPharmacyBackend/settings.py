@@ -180,8 +180,8 @@ LOGGING = {
             'class': 'logging.handlers.RotatingFileHandler',
             'filename': os.path.join(BASE_DIR.parent, "logs/" + datetime.datetime.now().strftime('%Y-%m-%d') + ".log"),
             'encoding': 'UTF-8',  # 인코딩 깨지지 말라고
-            'maxBytes': 1024 * 1024 * 100,  # 100 MB
-            'backupCount': 7,  # 백업은 7일까지
+            'maxBytes': 1024 * 1024 * 10,  # 10 MB
+            'backupCount': 7,  # 백업은 7개까지
             'formatter': 'formatTime',
         },
         'console': {
