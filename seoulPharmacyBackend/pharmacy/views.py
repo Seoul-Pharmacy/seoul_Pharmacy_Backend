@@ -121,6 +121,7 @@ def nearby_pharmacy_list(request):
     language = request.GET.get("language", default=None)
     latitude = request.GET.get("latitude")
     longitude = request.GET.get("longitude")
+    is_open = request.GET.get("isOpen", default=False)
 
     now = datetime.now()
     year = now.year
@@ -133,7 +134,8 @@ def nearby_pharmacy_list(request):
     pharmacies = Pharmacy.objects.all()
     pharmacies = filter_by_gu(pharmacies, gu)
     pharmacies = filter_by_language(pharmacies, language)
-    pharmacies = filter_by_date_and_time(pharmacies, year, month, day, now_time, now_time)
+    if is_open:
+        pharmacies = filter_by_date_and_time(pharmacies, year, month, day, now_time, now_time)
 
     if not pharmacies:
         raise PharmacyNotFoundException
