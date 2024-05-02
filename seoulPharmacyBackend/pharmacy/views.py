@@ -27,7 +27,9 @@ def pharmacy_list(request) -> Response:
     now = datetime.now()
     page = request.GET.get("page")
     gu = request.GET.get("gu", default=None)
-    language = request.GET.get("language", default=None)
+    speaking_english: bool = bool(request.GET.get("speakingEnglish", default=False))
+    speaking_japanese: bool = bool(request.GET.get("speakingJapanese", default=False))
+    speaking_chinese: bool = bool(request.GET.get("speakingChinese", default=False))
     enter_time = int(request.GET.get("enterTime"))
     exit_time = int(request.GET.get("exitTime"))
     year = int(request.GET.get("year", default=now.year))
@@ -35,13 +37,13 @@ def pharmacy_list(request) -> Response:
     day = int(request.GET.get("day", default=now.day))
 
     logger.info(
-        "views.pharmacy_list() : request(page : {0}, gu : {1}, language : {2}, enter_time : {3}, exit_time : {4}, "
-        "date : {5}.{6}.{7})".format(
-            page, gu, language, enter_time, exit_time, year, month, day))
+        "views.pharmacy_list() : request(page : {0}, gu : {1}, speaking_english : {2}, speaking_japanese : {3}, "
+        "speaking_chinese : {4}, enter_time : {5}, exit_time : {6}, date : {7}.{8}.{9})".format(
+            page, gu, speaking_english, speaking_japanese, speaking_chinese, enter_time, exit_time, year, month, day))
 
     pharmacies = Pharmacy.objects.all().order_by('id')
     pharmacies = filter_by_gu(pharmacies, gu)
-    pharmacies = filter_by_language(pharmacies, language)
+    pharmacies = filter_by_language(pharmacies, speaking_english, speaking_japanese, speaking_chinese)
     pharmacies = filter_by_date_and_time(pharmacies, year, month, day, enter_time, exit_time)
 
     if not pharmacies:
@@ -62,13 +64,13 @@ def filter_by_gu(queryset, gu) -> QuerySet:
 
 
 # 언어에 맞는 약국만 필터링, None이면 그대로
-def filter_by_language(queryset, language) -> QuerySet:
-    if language == "en":
-        return queryset.filter(speaking_english=True)
-    if language == "cn":
-        return queryset.filter(speaking_chinese=True)
-    if language == "jp":
-        return queryset.filter(speaking_japanese=True)
+def filter_by_language(queryset, speaking_english, speaking_japanese, speaking_chinese) -> QuerySet:
+    if speaking_english:
+        queryset = queryset.filter(speaking_english=True)
+    if speaking_japanese:
+        queryset = queryset.filter(speaking_japanese=True)
+    if speaking_chinese:
+        queryset = queryset.filter(speaking_chinese=True)
     return queryset
 
 
@@ -118,7 +120,9 @@ def filter_by_dayofweek_and_time(queryset: QuerySet, day_of_week: str, enter_tim
 @api_view(['GET'])
 def nearby_pharmacy_list(request):
     gu = request.GET.get("gu")
-    language = request.GET.get("language", default=None)
+    speaking_english: bool = bool(request.GET.get("speakingEnglish", default=False))
+    speaking_japanese: bool = bool(request.GET.get("speakingJapanese", default=False))
+    speaking_chinese: bool = bool(request.GET.get("speakingChinese", default=False))
     latitude = request.GET.get("latitude")
     longitude = request.GET.get("longitude")
     is_open = request.GET.get("isOpen", default=False)
@@ -129,11 +133,13 @@ def nearby_pharmacy_list(request):
     day = now.day
     now_time = convert_hour_and_minute_to_int(now.hour, now.minute)
 
-    logger.info("views.nearby_pharmacy_list() : request(gu : %s, language : %s, latitude : %s, longitude : %s" % (gu, language, latitude, longitude))
+    logger.info("views.nearby_pharmacy_list() : request(gu : %s, speaking_english : %s, speaking_japanese : %s,  "
+                "speaking_chinese : %s , latitude : %s, longitude : %s" % (gu, speaking_english, speaking_japanese,
+                                                                           speaking_chinese, latitude, longitude))
 
     pharmacies = Pharmacy.objects.all()
     pharmacies = filter_by_gu(pharmacies, gu)
-    pharmacies = filter_by_language(pharmacies, language)
+    pharmacies = filter_by_language(pharmacies, speaking_english, speaking_japanese, speaking_chinese)
     if is_open:
         pharmacies = filter_by_date_and_time(pharmacies, year, month, day, now_time, now_time)
 
