@@ -41,7 +41,20 @@ def filter_by_location(datas, user_latitude, user_longitude):
         datas_results.append(datas[i])
 
     for i in indexes[0]:
-        datas[i]["distance"] = (str(haversine((float(user_latitude), float(user_longitude)), (
-            float(datas[i]['latitude']), float(datas[i]['longitude'])))) + "km")  # 사용자로부터 가까운 5개 약국과의 거리를 저장합니다.
+        distance = haversine((float(user_latitude), float(user_longitude)), (
+            float(datas[i]['latitude']), float(datas[i]['longitude'])))
+        datas[i]["distance"] = convertKmToMeter(distance)  # 사용자로부터 가까운 5개 약국과의 거리를 저장합니다.
 
     return datas_results
+
+
+def is_less_than_1km(distance: float) -> bool:
+    if distance < 1:
+        return True
+    return False
+
+
+def convertKmToMeter(distance):
+    if is_less_than_1km(distance):
+        return "{}{}".format(str(round(distance * 1000, 2)), "m")
+    return "{}{}".format(str(round(distance, 2)), "km")
