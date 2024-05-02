@@ -22,28 +22,31 @@ def filter_by_location(datas, user_latitude, user_longitude):
     lat_lon_zip = [[lat, lon] for lat, lon in zip(filtered_latitude, filtered_longitude)]
     fake = np.zeros(len(datas))
 
-    mean = np.mean(lat_lon_zip, axis=0)
-    std = np.std(lat_lon_zip, axis=0)
-
-    lat_lon_zip = (lat_lon_zip - mean) / std
-    new = ([user_latitude, user_longitude] - mean) / std
-
     if (len(datas)) > 4:
+
         kn = KNeighborsClassifier()
+
+        mean = np.mean(lat_lon_zip, axis=0)
+        std = np.std(lat_lon_zip, axis=0)
+
+        lat_lon_zip = (lat_lon_zip - mean) / std
+        new = ([user_latitude, user_longitude] - mean) / std
+
+        kn.fit(lat_lon_zip, fake)
+        distances, indexes = kn.kneighbors([new])
 
     elif (len(datas)) < 5:
         kn = KNeighborsClassifier(n_neighbors=len(datas))
 
-    kn.fit(lat_lon_zip, fake)  # 드롭다운 된 경도, 위도를 통해 학습합니다.
-    distances, indexes = kn.kneighbors([new])
+        kn.fit(lat_lon_zip, fake)
+        distances, indexes = kn.kneighbors([[user_latitude, user_longitude]])
+
+    for i in indexes[0]:
+        datas[i]["distance"] = convertKmToMeter(haversine((float(user_latitude), float(user_longitude)), (
+            float(datas[i]['latitude']), float(datas[i]['longitude']))))
 
     for i in indexes[0]:
         datas_results.append(datas[i])
-
-    for i in indexes[0]:
-        distance = haversine((float(user_latitude), float(user_longitude)), (
-            float(datas[i]['latitude']), float(datas[i]['longitude'])))
-        datas[i]["distance"] = convertKmToMeter(distance)  # 사용자로부터 가까운 5개 약국과의 거리를 저장합니다.
 
     return datas_results
 
