@@ -6,7 +6,7 @@ from pharmacy.models import Pharmacy
 # Register your models here.
 
 class PharmacyAdmin(admin.ModelAdmin):
-    list_display = ['id', 'name', 'gu', 'road_name_address']
+    list_display = ['id', 'name', 'gu', 'road_name_address', 'last_modified']
     list_filter = ['gu', 'speaking_english', 'speaking_japanese', 'speaking_chinese']
     search_fields = ['name', 'gu', 'road_name_address']
 
