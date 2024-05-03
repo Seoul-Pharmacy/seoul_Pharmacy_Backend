@@ -26,12 +26,12 @@ logger = logging.getLogger('django')
 def pharmacy_list(request) -> Response:
     now = datetime.now()
     page = request.GET.get("page")
-    gu = request.GET.get("gu", default=None)
+    gu: str = request.GET.get("gu", default=None)
     speaking_english: bool = bool(request.GET.get("speakingEnglish", default=False))
     speaking_japanese: bool = bool(request.GET.get("speakingJapanese", default=False))
     speaking_chinese: bool = bool(request.GET.get("speakingChinese", default=False))
-    enter_time = convertTimeToDbTime(int(request.GET.get("enterTime")))
-    exit_time = convertTimeToDbTime(int(request.GET.get("exitTime")))
+    enter_time: str = request.GET.get("enterTime", default=None)
+    exit_time: str = request.GET.get("exitTime", default=None)
     year = int(request.GET.get("year", default=now.year))
     month = int(request.GET.get("month", default=now.month))
     day = int(request.GET.get("day", default=now.day))
@@ -44,7 +44,7 @@ def pharmacy_list(request) -> Response:
     pharmacies = Pharmacy.objects.all().order_by('id')
     pharmacies = filter_by_gu(pharmacies, gu)
     pharmacies = filter_by_language(pharmacies, speaking_english, speaking_japanese, speaking_chinese)
-    pharmacies = filter_by_date_and_time(pharmacies, year, month, day, enter_time, exit_time)
+    pharmacies = filter_by_date_and_str_time(pharmacies, year, month, day, enter_time, exit_time)
 
     if not pharmacies:
         raise PharmacyNotFoundException
@@ -89,7 +89,17 @@ def get_day_of_week(year, month, day) -> str:
     return days[day_of_week]
 
 
-# 날짜를 받아서, 그 날짜 운영시간에 해당하는 약국 필터링(요일, 공휴일)
+# 날짜와 문자열시간을 받아서, 그 날짜 운영시간에 해당하는 약국 필터링(요일, 공휴일)
+def filter_by_date_and_str_time(queryset: QuerySet, year: int, month: int, day: int, enter_time: str, exit_time: str):
+    if not (enter_time is None or exit_time is None):
+        enter_time = convertTimeToDbTime(int(enter_time))
+        exit_time = convertTimeToDbTime(int(exit_time))
+
+        return filter_by_date_and_time(queryset, year, month, day, enter_time, exit_time)
+    return queryset
+
+
+# 날짜와 시간을 받아서, 그 날짜 운영시간에 해당하는 약국 필터링(요일, 공휴일)
 def filter_by_date_and_time(queryset: QuerySet, year: int, month: int, day: int, enter_time: int, exit_time: int):
     if is_holiday(year, month, day):
         return queryset.filter(holiday_open_time__lte=enter_time, holiday_close_time__gte=exit_time)
