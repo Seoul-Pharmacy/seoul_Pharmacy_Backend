@@ -27,9 +27,9 @@ def pharmacy_list(request) -> Response:
     now = datetime.now()
     page = request.GET.get("page")
     gu: str = request.GET.get("gu", default=None)
-    speaking_english: bool = bool(request.GET.get("speakingEnglish", default=False))
-    speaking_japanese: bool = bool(request.GET.get("speakingJapanese", default=False))
-    speaking_chinese: bool = bool(request.GET.get("speakingChinese", default=False))
+    speaking_english: bool = convert_str_to_bool(request.GET.get("speakingEnglish", default=False))
+    speaking_japanese: bool = convert_str_to_bool(request.GET.get("speakingJapanese", default=False))
+    speaking_chinese: bool = convert_str_to_bool(request.GET.get("speakingChinese", default=False))
     enter_time: str = request.GET.get("enterTime", default=None)
     exit_time: str = request.GET.get("exitTime", default=None)
     year = int(request.GET.get("year", default=now.year))
@@ -43,8 +43,11 @@ def pharmacy_list(request) -> Response:
 
     pharmacies = Pharmacy.objects.all().order_by('id')
     pharmacies = filter_by_gu(pharmacies, gu)
+    logger.info("pharmacies after filter_by_gu() : {}".format(pharmacies))
     pharmacies = filter_by_language(pharmacies, speaking_english, speaking_japanese, speaking_chinese)
+    logger.info("pharmacies after filter_by_language() : {}".format(pharmacies))
     pharmacies = filter_by_date_and_str_time(pharmacies, year, month, day, enter_time, exit_time)
+    logger.info("pharmacies after filter_by_date_and_str_time() : {}".format(pharmacies))
 
     if not pharmacies:
         raise PharmacyNotFoundException
@@ -65,8 +68,9 @@ def convertTimeToDbTime(time: int) -> int:
 
 # 구에 해당하는 약국만 필터링, None이면 그대로
 def filter_by_gu(queryset, gu) -> QuerySet:
-    if gu is not None:
+    if gu is not None and gu != "":
         queryset = queryset.filter(gu=gu)
+
     return queryset
 
 
@@ -78,6 +82,7 @@ def filter_by_language(queryset, speaking_english, speaking_japanese, speaking_c
         queryset = queryset.filter(speaking_japanese=True)
     if speaking_chinese:
         queryset = queryset.filter(speaking_chinese=True)
+
     return queryset
 
 
@@ -136,13 +141,13 @@ def filter_by_dayofweek_and_time(queryset: QuerySet, day_of_week: str, enter_tim
 # 근처 약국 찾기
 @api_view(['GET'])
 def nearby_pharmacy_list(request):
-    gu = request.GET.get("gu")
-    speaking_english: bool = bool(request.GET.get("speakingEnglish", default=False))
-    speaking_japanese: bool = bool(request.GET.get("speakingJapanese", default=False))
-    speaking_chinese: bool = bool(request.GET.get("speakingChinese", default=False))
+    gu = request.GET.get("gu", default=None)
+    speaking_english: bool = convert_str_to_bool(request.GET.get("speakingEnglish", default=False))
+    speaking_japanese: bool = convert_str_to_bool(request.GET.get("speakingJapanese", default=False))
+    speaking_chinese: bool = convert_str_to_bool(request.GET.get("speakingChinese", default=False))
     latitude = request.GET.get("latitude")
     longitude = request.GET.get("longitude")
-    is_open = request.GET.get("isOpen", default=False)
+    is_open = convert_str_to_bool(request.GET.get("isOpen", default=False)) # 기본으로 현재 운영중인 약국만 보여준다.
 
     now = datetime.now()
     year = now.year
@@ -157,10 +162,13 @@ def nearby_pharmacy_list(request):
 
     pharmacies = Pharmacy.objects.all()
     pharmacies = filter_by_gu(pharmacies, gu)
+    logger.info("pharmacies after filter_by_gu() : {}".format(pharmacies))
     pharmacies = filter_by_language(pharmacies, speaking_english, speaking_japanese, speaking_chinese)
+    logger.info("pharmacies after filter_by_language() : {}".format(pharmacies))
 
     if is_open:
         pharmacies = filter_by_date_and_time(pharmacies, year, month, day, now_time, now_time)
+        logger.info("pharmacies after filter_by_date_and_time() : {}".format(pharmacies))
 
     if not pharmacies:
         raise PharmacyNotFoundException
@@ -168,6 +176,7 @@ def nearby_pharmacy_list(request):
     datas = SimpleNearbyPharmacySerializer(pharmacies, many=True).data
 
     datas = filter_by_location(datas, float(latitude), float(longitude))
+
     paginator = CustomPageNumberPagination()
     pages = paginator.paginate_queryset(datas, request)
 
@@ -177,6 +186,11 @@ def nearby_pharmacy_list(request):
 # 시간과 분을 2300등의 형식으로 바꿔주기
 def convert_hour_and_minute_to_int(hour, minute):
     return hour * 100 + minute
+
+
+# 문자열을 boolean으로 변환
+def convert_str_to_bool(input:str) -> bool:
+    return input in ['true', 'True', '1']
 
 
 # 약국 운영시간 저장하기
