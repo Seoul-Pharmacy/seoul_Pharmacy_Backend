@@ -1,5 +1,5 @@
 import logging
-from datetime import datetime
+from datetime import datetime, date, timedelta
 
 from django.db.models import QuerySet
 from django.http import JsonResponse
@@ -30,11 +30,12 @@ def pharmacy_list(request) -> Response:
     speaking_english: bool = convert_str_to_bool(request.GET.get("speakingEnglish", default=False))
     speaking_japanese: bool = convert_str_to_bool(request.GET.get("speakingJapanese", default=False))
     speaking_chinese: bool = convert_str_to_bool(request.GET.get("speakingChinese", default=False))
-    enter_time: str = request.GET.get("enterTime", default=None)
-    exit_time: str = request.GET.get("exitTime", default=None)
+    enter_time: int = convert_time_str_to_db_time(request.GET.get("enterTime", default=None))
+    exit_time: int = convert_time_str_to_db_time(request.GET.get("exitTime", default=None))
     year = int(request.GET.get("year", default=now.year))
     month = int(request.GET.get("month", default=now.month))
     day = int(request.GET.get("day", default=now.day))
+    visit_date = convert_date_to_server_date(date(year, month, day), enter_time)
 
     logger.info(
         "views.pharmacy_list() : request(page : {0}, gu : {1}, speaking_english : {2}, speaking_japanese : {3}, "
@@ -46,7 +47,7 @@ def pharmacy_list(request) -> Response:
     logger.info("pharmacies after filter_by_gu() : {}".format(pharmacies))
     pharmacies = filter_by_language(pharmacies, speaking_english, speaking_japanese, speaking_chinese)
     logger.info("pharmacies after filter_by_language() : {}".format(pharmacies))
-    pharmacies = filter_by_date_and_str_time(pharmacies, year, month, day, enter_time, exit_time)
+    pharmacies = filter_by_date_and_time(pharmacies, visit_date, enter_time, exit_time)
     logger.info("pharmacies after filter_by_date_and_str_time() : {}".format(pharmacies))
 
     if not pharmacies:
@@ -60,10 +61,26 @@ def pharmacy_list(request) -> Response:
 
 
 # int형식의 time을 db타임에 맞춰주기, 100 -> 2500
-def convertTimeToDbTime(time: int) -> int:
+def convert_time_str_to_db_time(time: str) -> int | None:
+    if time is None:
+        return None
+
+    time = int(time)
+    time = convert_time_to_db_time(time)
+    return time
+
+
+def convert_time_to_db_time(time: int) -> int:
     if time < 600:
         time += 2400
     return time
+
+
+# date를 server 형식에 맞는 date로 변경( 01시의 경우 전날 25시가 된다.)
+def convert_date_to_server_date(visit_date: date, time: int) -> date:
+    if time < 600:
+        return visit_date - timedelta(days=1)
+    return visit_date
 
 
 # 구에 해당하는 약국만 필터링, None이면 그대로
@@ -94,23 +111,20 @@ def get_day_of_week(year, month, day) -> str:
     return days[day_of_week]
 
 
-# 날짜와 문자열시간을 받아서, 그 날짜 운영시간에 해당하는 약국 필터링(요일, 공휴일)
-def filter_by_date_and_str_time(queryset: QuerySet, year: int, month: int, day: int, enter_time: str, exit_time: str):
-    if not (enter_time is None or exit_time is None):
-        enter_time = convertTimeToDbTime(int(enter_time))
-        exit_time = convertTimeToDbTime(int(exit_time))
-
-        return filter_by_date_and_time(queryset, year, month, day, enter_time, exit_time)
-    return queryset
-
-
 # 날짜와 시간을 받아서, 그 날짜 운영시간에 해당하는 약국 필터링(요일, 공휴일)
-def filter_by_date_and_time(queryset: QuerySet, year: int, month: int, day: int, enter_time: int, exit_time: int):
+def filter_by_date_and_time(queryset: QuerySet, visit_date: date, enter_time: int, exit_time: int):
+    year = visit_date.year
+    month = visit_date.month
+    day = visit_date.day
+
+    if enter_time is None or exit_time is None:
+        return queryset
+
     if is_holiday(year, month, day):
         return queryset.filter(holiday_open_time__lte=enter_time, holiday_close_time__gte=exit_time)
-
-    day_of_week = get_day_of_week(year, month, day)
-    return filter_by_dayofweek_and_time(queryset, day_of_week, enter_time, exit_time)
+    else:
+        day_of_week = get_day_of_week(year, month, day)
+        return filter_by_dayofweek_and_time(queryset, day_of_week, enter_time, exit_time)
 
 
 # 특정 요일 운영시간에 해당하는 약국만 필터링
@@ -147,18 +161,16 @@ def nearby_pharmacy_list(request):
     speaking_chinese: bool = convert_str_to_bool(request.GET.get("speakingChinese", default=False))
     latitude = request.GET.get("latitude")
     longitude = request.GET.get("longitude")
-    is_open = convert_str_to_bool(request.GET.get("isOpen", default=False)) # 기본으로 현재 운영중인 약국만 보여준다.
+    is_open = convert_str_to_bool(request.GET.get("isOpen", default=False))  # 기본으로 현재 운영중인 약국만 보여준다.
 
     now = datetime.now()
-    year = now.year
-    month = now.month
-    day = now.day
-    now_time = convertTimeToDbTime(convert_hour_and_minute_to_int(now.hour, now.minute))
+    now_time = convert_time_to_db_time(convert_hour_and_minute_to_db_time(now.hour, now.minute))
+    visit_date = convert_date_to_server_date(now.date(), now_time)
 
     logger.info("views.nearby_pharmacy_list() : request(gu : %s, speaking_english : %s, speaking_japanese : %s,  "
                 "speaking_chinese : %s , latitude : %s, longitude : %s, is_open : %s, year-month-day-time : %d-%d-%d-%d" % (
                     gu, speaking_english, speaking_japanese,
-                    speaking_chinese, latitude, longitude, is_open, year, month, day, now_time))
+                    speaking_chinese, latitude, longitude, is_open, now.year, now.month, now.day, now_time))
 
     pharmacies = Pharmacy.objects.all()
     pharmacies = filter_by_gu(pharmacies, gu)
@@ -167,7 +179,7 @@ def nearby_pharmacy_list(request):
     logger.info("pharmacies after filter_by_language() : {}".format(pharmacies))
 
     if is_open:
-        pharmacies = filter_by_date_and_time(pharmacies, year, month, day, now_time, now_time)
+        pharmacies = filter_by_date_and_time(pharmacies, visit_date, now_time, now_time)
         logger.info("pharmacies after filter_by_date_and_time() : {}".format(pharmacies))
 
     if not pharmacies:
@@ -184,13 +196,13 @@ def nearby_pharmacy_list(request):
 
 
 # 시간과 분을 2300등의 형식으로 바꿔주기
-def convert_hour_and_minute_to_int(hour, minute):
+def convert_hour_and_minute_to_db_time(hour, minute):
     return hour * 100 + minute
 
 
 # 문자열을 boolean으로 변환
-def convert_str_to_bool(input:str) -> bool:
-    return input in ['true', 'True', '1']
+def convert_str_to_bool(input_value: str) -> bool:
+    return input_value in ['true', 'True', '1', True]
 
 
 # 약국 운영시간 저장하기
