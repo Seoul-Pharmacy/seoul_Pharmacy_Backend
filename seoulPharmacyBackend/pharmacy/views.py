@@ -1,7 +1,7 @@
 import logging
 from datetime import datetime, date, timedelta
 
-from django.db.models import QuerySet
+from django.db.models import QuerySet, Q
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
 from rest_framework import status
@@ -93,14 +93,16 @@ def filter_by_gu(queryset, gu) -> QuerySet:
 
 # 언어에 맞는 약국만 필터링, None이면 그대로
 def filter_by_language(queryset, speaking_english, speaking_japanese, speaking_chinese) -> QuerySet:
-    if speaking_english:
-        queryset = queryset.filter(speaking_english=True)
-    if speaking_japanese:
-        queryset = queryset.filter(speaking_japanese=True)
-    if speaking_chinese:
-        queryset = queryset.filter(speaking_chinese=True)
+    filter_conditions = Q()
 
-    return queryset
+    if speaking_english:
+        filter_conditions |= Q(speaking_english=True)
+    if speaking_japanese:
+        filter_conditions |= Q(speaking_japanese=True)
+    if speaking_chinese:
+        filter_conditions |= Q(speaking_chinese=True)
+
+    return queryset.filter(filter_conditions)
 
 
 # 날자에 해당하는 요일 가져오기
