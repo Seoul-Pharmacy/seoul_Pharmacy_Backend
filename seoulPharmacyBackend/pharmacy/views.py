@@ -25,13 +25,16 @@ logger = logging.getLogger('django')
 @api_view(['GET'])
 def pharmacy_list(request) -> Response:
     now = datetime.now()
+    now_time = convert_hour_and_minute_to_db_time(now.hour, now.minute)
     page = request.GET.get("page")
     gu: str = request.GET.get("gu", default=None)
     speaking_english: bool = convert_str_to_bool(request.GET.get("speakingEnglish", default=False))
     speaking_japanese: bool = convert_str_to_bool(request.GET.get("speakingJapanese", default=False))
     speaking_chinese: bool = convert_str_to_bool(request.GET.get("speakingChinese", default=False))
-    enter_time: int = convert_time_str_to_db_time(request.GET.get("enterTime", default=None))
-    exit_time: int = convert_time_str_to_db_time(request.GET.get("exitTime", default=None))
+    enter_time: int = convert_time_to_db_time(
+        convert_time_str_to_time_int(request.GET.get("enterTime", default=str(now_time))))
+    exit_time: int = convert_time_to_db_time(
+        convert_time_str_to_time_int(request.GET.get("exitTime", default=str(now_time))))
     year = int(request.GET.get("year", default=now.year))
     month = int(request.GET.get("month", default=now.month))
     day = int(request.GET.get("day", default=now.day))
@@ -61,13 +64,11 @@ def pharmacy_list(request) -> Response:
 
 
 # int형식의 time을 db타임에 맞춰주기, 100 -> 2500
-def convert_time_str_to_db_time(time: str) -> int | None:
+def convert_time_str_to_time_int(time: str) -> int | None:
     if time is None:
         return None
 
-    time = int(time)
-    time = convert_time_to_db_time(time)
-    return time
+    return int(time)
 
 
 def convert_time_to_db_time(time: int) -> int:
